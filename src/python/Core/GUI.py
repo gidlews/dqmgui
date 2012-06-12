@@ -329,7 +329,7 @@ class Server:
                       re.sub(r'/\*(?:.|[\r\n])*?\*/', '', text)))))
       self.css += [(filename, "\n" + clean + "\n")]
 
-  def _addJSFragment(self, filename, minimise=True):
+  def _addJSFragment(self, filename, minimise=False):
     """Add a piece of javascript to the master HTML page."""
     if not dict(self.js).has_key(filename):
       text = file(filename).read()
