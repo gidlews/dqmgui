@@ -170,7 +170,7 @@ var GUI = new function()
   this.makeCall = function(url)
   {
     var id = _requestId++;
-
+    
     _progressimg.src = ROOTPATH + "/static/cms-progress.gif";
     _lastRequest = YAHOO.util.Connect.asyncRequest
       ("GET", url, { scope: _gui,

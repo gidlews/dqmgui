@@ -588,6 +588,14 @@ class DQMArchiveSource(Accelerator.DQMArchiveSource):
   def plot(self, runnr, dsP, dsW, dsT, *path, **options):
     return self._plot(int(runnr), "/".join(('', dsP, dsW, dsT)),
 		      "/".join(path), options)
+		      
+		      
+  # Generate an json describtion given an object type ('scalar' or
+  # 'rootobj'), the run number, dataset path, object name and render
+  # options. 
+  def json(self, runnr, dsP, dsW, dsT, *path, **options):
+    return self._json(int(runnr), "/".join(('', dsP, dsW, dsT)),
+		      "/".join(path), options)
 
 # --------------------------------------------------------------------
 # .sessiondef
@@ -1071,6 +1079,44 @@ class DQMWorkspace:
     self.gui._saveSession(session)
     return self._state(session)
 
+  def sessionSetJsonmode(self, session, *args, **kwargs):
+    jsonmode = kwargs.get('mode', None)
+    if isinstance(jsonmode, str) or jsonmode in ("yes", "no"):
+      session['dqm.zoom.jsonmode'] = (jsonmode == "yes")
+    
+    self.gui._saveSession(session)
+    return self._state(session)
+
+  # Change JSON window parameters.
+  def sessionSetJsonZoom(self, session, *args, **kwargs):
+    x = kwargs.get('x', None)
+    y = kwargs.get('y', None)
+    w = kwargs.get('w', None)
+    h = kwargs.get('h', None)
+
+    if x != None:
+      if not isinstance(x, str) or not re.match(r"^\d+$", x):
+        raise HTTPError(500, "Invalid Zoom position parameter")
+      session['dqm.zoom.jx'] = int(x)
+
+    if y != None:
+      if not isinstance(y, str) or not re.match(r"^\d+$", y):
+        raise HTTPError(500, "Invalid Zoom position parameter")
+      session['dqm.zoom.jy'] = int(y)
+
+    if w != None:
+      if not isinstance(w, str) or not re.match(r"^\d+$", w):
+        raise HTTPError(500, "Invalid Zoom width parameter")
+      session['dqm.zoom.jw'] = int(w)
+
+    if h != None:
+      if not isinstance(h, str) or not re.match(r"^\d+$", h):
+        raise HTTPError(500, "Invalid Zoom height parameter")
+      session['dqm.zoom.jh'] = int(h)
+      
+    self.gui._saveSession(session)
+    return self._state(session)
+
   # Change Zoom window parameters.
   def sessionSetZoom(self, session, *args, **kwargs):
     show = kwargs.get('show', None)
@@ -1103,9 +1149,8 @@ class DQMWorkspace:
       if not isinstance(h, str) or not re.match(r"^\d+$", h):
         raise HTTPError(500, "Invalid Zoom height parameter")
       session['dqm.zoom.h'] = int(h)
-
+      
     self.gui._saveSession(session)
-#    return "Ma."
     return self._state(session)
 
   def sessionChangeRun(self, session, *args, **kwargs):
