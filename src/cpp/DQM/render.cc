@@ -1261,7 +1261,6 @@ private:
 					 .arg("");
 			}
 		}
-
 	} else {
 		json = "{'hist': 'unsupported type'}";
 	}
@@ -1490,7 +1489,36 @@ private:
 
         // Draw the main object on top.
         ob->Draw(ri.drawOptions.c_str());
+		if (TProfile* tprof = dynamic_cast<TProfile*>(ob)) {
+			TText *t2 = new TText(.5, .42, "TPROFILE!!!");
+			Color_t c = TColor::GetColor(178, 32, 32);
+			t2->SetNDC(kTRUE);
+			t2->SetTextSize(0.10);
+			t2->SetTextAlign(22);
+			t2->SetTextColor(c);
+			t2->Draw();
+//			Option_t errorOption = "s";
+//			tprof->SetErrorOption("s");
+//			tprof->SetMinimum();
+		} else {/*
+			TText *t2 = new TText(.5, .42, "not!!!");
+			Color_t c = TColor::GetColor(178, 32, 32);
+			t2->SetNDC(kTRUE);
+			t2->SetTextSize(0.10);
+			t2->SetTextAlign(22);
+			t2->SetTextColor(c);
+			t2->Draw();*/
+		}
 
+		if (const TProfile2D* const tprof = dynamic_cast<const TProfile2D* const>(ob)) {
+			TText *t2 = new TText(.5, .42, "TPROFILE2D!!!");
+			Color_t c = TColor::GetColor(32, 132, 32);
+			t2->SetNDC(kTRUE);
+			t2->SetTextSize(0.10);
+			t2->SetTextAlign(22);
+			t2->SetTextColor(c);
+			t2->Draw();
+		}
         // Maybe draw overlay from reference and other objects.
 	for (size_t n = 0; n < numobjs; ++n)
         {

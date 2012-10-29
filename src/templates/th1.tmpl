@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+body {
+  font: 10px sans-serif;
+}
+
+.axis path, .axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.area {
+  fill: lightsteelblue;
+}
+
+.line {
+  fill: none;
+  stroke: steelblue;
+  stroke-width: 1.5px;
+}
+
+.dot {
+  fill: white;
+  stroke: steelblue;
+  stroke-width: 1.5px;
+}
+
+.title {
+	font-size: 1.5em;
+	font-weight:bold;
+}
+
+.axistitle {
+	font-size: 1.5em;
+	font-weight:bold;
+}
+</style>
+<body>
+<!--  <script src="d3\d3.v2.js"></script> -->
+<script src="https://raw.github.com/mbostock/d3/master/d3.v2.js"></script>
+<script>
+/* 
+var data = d3.range(40).map(function(i) {
+  return {x: i / 39, y: (Math.sin(i / 3) + 2) / 4};
+}); */
+
+//json = JSON.parse('$JSON');
+/* 
+d3.select("body").append("p").text("Data");
+bins = json.hist.bins;
+
+var margin = {top: 20, right: 20, bottom: 20, left: 20},
+    width = 500 - margin.left - margin.right,
+    height = 400 - margin.top - margin.bottom;
+//alert(bins.content.length)
+if(bins.width) {
+	stepBins = [{x:json.hist.Xaxis.first.value, y:json.hist.values.min}];
+	var sumX = json.hist.Xaxis.first.value;
+ 
+	for(var i = 0; i!=bins.content.length; ++i) {
+		stepBins.push({
+			x: sumX,
+			y: bins.content[i]
+		})
+		sumX += bins.width[i];
+		stepBins.push({
+			x: sumX,
+			y: bins.content[i]
+		})		
+	}
+	
+	stepBins .push({x:json.hist.Xaxis.last.value, y:json.hist.values.min});
+}
+
+var xx = d3.scale.linear() 
+		.domain([0,json.hist.Xaxis.last.value- json.hist.Xaxis.first.value])
+    	.range([0, width]);
+
+var x = d3.scale.linear() 
+     .domain([ json.hist.Xaxis.first.value, 
+             json.hist.Xaxis.last.value]) 
+    	.range([0, width]);
+
+var y = d3.scale.linear()
+    .domain([json.hist.values.min
+             ,json.hist.values.max])
+    .range([height, 0]);
+
+var xAxis = d3.svg.axis()
+    .scale(x)
+    .orient("bottom");
+
+if(json.hist.Xaxis.labels) {
+	xAxis.tickValues([]);
+}	
+
+
+var yAxis = d3.svg.axis()
+    .scale(y)
+    .orient("left");
+
+var tickLen = (json.hist.Xaxis.last.value - json.hist.Xaxis.first.value) / bins.content.length;
+//alert(tickLen) 
+var sum = 0;
+var line;
+var binsTable;
+if(bins.width) {
+	line = d3.svg.line()
+    .x(function(d,i) { return x(d.x);
+    	/* sum+=bins.width[i]; return xx(sum-(bins.width[i]/2));  */})
+    .y(function(d) { return y(d.y); });
+} else {
+	line = d3.svg.line()
+    .x(function(d,i) {return xx[i]; })
+    .y(function(d) { return y(d); });
+}
+
+
+
+var area = d3.svg.area()
+    .x(line.x())
+    .y1(line.y())
+    .y0(y(json.hist.values.min));
+
+var svg = d3.select("body").append("svg")
+    .datum((bins.width ? stepBins : bins.content))
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+if(json.hist.title) {
+	svg.append("text")
+		.attr("class","title")
+		·attr("id","title")
+		.text("aa");
+	//json.hist.title
+	//margin.top += document.getElementById("title").getBBox().height;
+}
+svg.append("path")
+    .attr("class", "area")
+    .attr("d", area);
+
+svg.append("g")
+    .attr("class", "x axis")
+    .attr("transform", "translate(0," + height + ")")
+    .attr("id","xaxis")
+    .call(xAxis);
+    
+svg.append("g")
+    .attr("class", "y axis")
+    .attr("id","yaxis")
+    .call(yAxis);
+
+svg.append("path")
+    .attr("class", "line")
+    .attr("d", line);
+
+/* svg.selectAll(".dot")
+    .data((bins.width ? stepBins : bins.content))
+  .enter().append("circle")
+    .attr("class", "dot")
+    .attr("cx", line.x())
+    .attr("cy", line.y())
+    .attr("r", 3.5) 
+    .on("mouseover",function(d) {alert(d.x);});
+*/
+
+
+if(json.hist.Xaxis.labels) {
+	var labelsPosition =  (document.getElementById("xaxis").getBBox().y+ document.getElementById("xaxis").getBBox().height);
+	d3.select("#xaxis").selectAll(".label")
+ 	.data(json.hist.Xaxis.labels)
+ 	.enter().append("text")
+  		.text(function(d) {return d.value;})
+  		.attr("class","label")
+		.attr("text-anchor","begin")
+		.attr("dominant-baseline","middle")  		
+  //		.attr("x",function(d) {return xx(d.center)})
+//  		.attr("y",(document.getElementById("xaxis").getBBox().y+ document.getElementById("xaxis").getBBox().height+5))
+		.attr("transform",function(d) {return "translate("+x(d.center)+","+(labelsPosition+5)+")"+" rotate(30)"});
+}
+
+
+if(json.hist.Xaxis.title)
+//		svg.append("g")
+//			.attr("transform","translate(0,"+(margin.top + height)+")")
+ 	d3.select("#xaxis").append("text")
+	  	.text(json.hist.Xaxis.title)
+		.attr("transform","translate("+width+", "+(document.getElementById("xaxis").getBBox().y+ document.getElementById("xaxis").getBBox().height)+")")
+		.attr("text-anchor","end")
+		.attr("dominant-baseline","hanging")			
+		.attr("id","xtitle")			
+		.attr("class","axistitle")
+		.attr("x",0)
+		.attr("y",0);
+if(json.hist.Yaxis.title) 
+ 	d3.select("#yaxis").append("text")
+	  	.text(json.hist.Yaxis.title)
+		.attr("transform","translate("+
+				document.getElementById("yaxis").getBBox().x+", 0)  rotate(90)")
+		.attr("text-anchor","begin")
+		.attr("dominant-baseline","hanging")
+		.attr("class","axistitle")
+		.attr("id","ytitle")
+		.attr("x",-10)
+		.attr("y",0);	
+
+/* 	margin = {top: 20, right: 20, bottom: 20, 
+			left: 
+			},*/
+margin.left = Math.abs(document.getElementById("yaxis").getBBox().x);
+margin.bottom = document.getElementById("xaxis").getBBox().height;
+width = 500 + margin.left + margin.right,
+height = 400 + margin.top + margin.bottom;
+
+//resize and move plot to show axis labels and title
+
+svg
+	.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+d3.select("svg")
+	.attr("width", width)
+	.attr("height", height); */
+
+</script>

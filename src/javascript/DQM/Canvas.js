@@ -67,7 +67,8 @@ function layoutimg(img, container, focus, onclick, ref, size, ob,
 		   + encodePathComponent(ob.name));
   var imgref = (! ob.name ? FULLROOTPATH + "/static/blank.gif?"
 		: FULLROOTPATH + "/plotfairy/" + nameref + "?");
-  var jsonref = FULLROOTPATH + "/jsonfairy/" + nameref + "?formatted=true";
+  var jsonplainref = FULLROOTPATH + "/jsonfairy/" + nameref + "?formatted=true";
+  var jsonref = FULLROOTPATH+"/plotjsonfairy/"+nameref+"?";
   var param = "session=" + SESSION_ID
 	      + ";v=" + ob.version
 	      + (ob.xaxis.type != "def" ? ";xtype=" + ob.xaxis.type : "")
@@ -114,8 +115,54 @@ function layoutimg(img, container, focus, onclick, ref, size, ob,
   if (img.getAttribute('dqmhelp') != ob.desc)
     img.setAttribute('dqmhelp', ob.desc);
 
+/*<<<<<<< current*/
   if (! img.onclick && onclick)
     img.onclick = onclick;
+/*=======
+function layoutimg(img, container, focus, onclick, ref, size, ob, rowdiv,
+		nrows, row, ncols, col, n, xargs) {
+	var sizeparam = setsize(container, img, size, row, nrows, col, ncols);
+	var nameref = (ob.nukename ? encodePathComponent(ob.location)
+			: encodePathComponent(ob.location) + "/"
+					+ encodePathComponent(ob.name));
+	var imgref = (!ob.name ? FULLROOTPATH + "/static/blank.gif?" : FULLROOTPATH
+			+ "/plotfairy/" + nameref + "?");
+	var jsonref = FULLROOTPATH+"/plotjsonfairy/"+nameref+"?";
+	var param = "session=" + SESSION_ID + ";v=" + ob.version
+			+ (ob.xaxis.type != "def" ? ";xtype=" + ob.xaxis.type : "")
+			+ (ob.xaxis.min != null ? ";xmin=" + ob.xaxis.min : "")
+			+ (ob.xaxis.max != null ? ";xmax=" + ob.xaxis.max : "")
+			+ (ob.yaxis.type != "def" ? ";ytype=" + ob.yaxis.type : "")
+			+ (ob.yaxis.min != null ? ";ymin=" + ob.yaxis.min : "")
+			+ (ob.yaxis.max != null ? ";ymax=" + ob.yaxis.max : "")
+			+ (ob.zaxis.type != "def" ? ";ztype=" + ob.zaxis.type : "")
+			+ (ob.zaxis.min != null ? ";zmin=" + ob.zaxis.min : "")
+			+ (ob.zaxis.max != null ? ";zmax=" + ob.zaxis.max : "")
+			+ (ob.drawopts ? ";drawopts=" + ob.drawopts : "")
+			+ (ob.withref != "def" ? ";withref=" + ob.withref : "")
+			+ (ref != "object" ? ";ref=" + ref : "") + xargs;
+	var url = imgref + param + sizeparam;
+	img.setAttribute('alarm', ob.alarm); // attach the alarm property
+											// directly to the HTML img tag
+	var border = ((ob.alarm && (nrows > 1 || ncols > 1)) ? (focus
+			&& ob.name == focus ? _IMG_BORDER_ALARM_SELECTED
+			: _IMG_BORDER_ALARM)
+			: (focus && ob.name == focus ? _IMG_BORDER_SELECTED
+					: _IMG_BORDER_NONE));
+
+	if (!ob.name && img.src != url) {
+		img.src = url;
+		img.jsonsrc = jsonref;
+	} else if (img.src != url) {
+		img.dqmsrc = url;
+		img.jsonsrc = jsonref;
+		GUI.ImgLoader.load(n + "." + row + "." + col, img, url, border,
+				_IMG_BORDER_NEW);
+		if (img.src.replace(/\?./, "?") != imgref)
+			img.src = ROOTPATH + "/static/blank.gif";
+		border = img.style.border;
+	}
+>>>>>>> patched*/
 
   if (! img.ondblclick && onclick)
     img.ondblclick = onclick;
