@@ -455,7 +455,8 @@ GUI.Plugin.DQMCanvas = new function()
   var _linkMe           = null;
   var _zoomWin          = null;
   var _jsonWin          = null;
-  this.getJsonWin = function() {return _jsonWin}
+  var _jsonTab			= null;
+  this.getJsonWin = function() {return _jsonTab}
   var _zoomlocal        = false;
   var _rootPath         = null;
 
@@ -1366,6 +1367,7 @@ GUI.Plugin.DQMCanvas = new function()
     _zoomWin.dd = new Ext.Panel.DD(_zoomWin, {
       insertProxy: false, onDrag: _self.zoomDrag,
       endDrag : function(e) { this.panel.setPosition(this.x, this.y); }});
+    
     var tabPanel = new Ext.TabPanel(
 			{
 				activeTab : 0,
@@ -1380,6 +1382,7 @@ GUI.Plugin.DQMCanvas = new function()
 						} ]
 			});
     tabPanel.on("tabchange", function(panel, tab) {_self.updateJsonWin()})
+    _jsonTab = tabPanel;
     _jsonWin = new Ext.Window(
         {
             layout : "fit",
@@ -1406,12 +1409,13 @@ GUI.Plugin.DQMCanvas = new function()
                 }
             }]
        });
-    _jsonWin.on('bodyresize', function(el,w,h) {if(w < 0 || h < 0) return; _gui.asyncCall(_url() + "/setJsonZoom?w=" + w + ';h=' +h);})
+    _jsonWin.on('bodyresize', function(el,w,h) {if(w < 0 || h < 0) return; _gui.asyncCall(_url() + "/setJsonZoom?w=" + w + ';h=' +h); /*if(window.frames[1]) {window.frames[1].redraw()} else {alert("nope")}*/})
     _jsonWin.on('move',  function(el,x,y) {if(x < 0 || y < 0) return; _gui.asyncCall(_url() + "/setJsonZoom?x=" + x + ';y=' +y);})    
     _jsonWin.show(this);
     _jsonWin.setVisible(false);
+    tabPanel.setAutoScroll(false);
   };
-  
+
   /** Expose private variables needed to assemble the link-me hyperlink.
    *  @returns {Object} The parameters are assemble in a unique object
    *  whose keys are formatted in a way already readable by the start
