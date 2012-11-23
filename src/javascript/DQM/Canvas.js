@@ -67,7 +67,7 @@ function layoutimg(img, container, focus, onclick, ref, size, ob,
 		   + encodePathComponent(ob.name));
   var imgref = (! ob.name ? FULLROOTPATH + "/static/blank.gif?"
 		: FULLROOTPATH + "/plotfairy/" + nameref + "?");
-  var jsonref = FULLROOTPATH + "/jsonfairy/" + nameref + "?formatted=true";
+  var jsonref = FULLROOTPATH + "/jsonfairy/" + nameref + "?" ;// + "?formatted=true";
   var param = "session=" + SESSION_ID
 	      + ";v=" + ob.version
 	      + (ob.xaxis.type != "def" ? ";xtype=" + ob.xaxis.type : "")
@@ -84,6 +84,7 @@ function layoutimg(img, container, focus, onclick, ref, size, ob,
 	      + (ref != "object" ? ";ref=" + ref : "")
 	      + xargs;
   var url = imgref + param + sizeparam;
+  var jsonurl = jsonref + param + ";formatted=true";
   img.setAttribute('alarm', ob.alarm); // attach the alarm property directly to the HTML img tag
   var border = ((ob.alarm && (nrows > 1 || ncols > 1))
                 ? (focus && ob.name == focus ? _IMG_BORDER_ALARM_SELECTED :_IMG_BORDER_ALARM)
@@ -92,12 +93,12 @@ function layoutimg(img, container, focus, onclick, ref, size, ob,
   if (! ob.name && img.src != url)
   {
     img.src = url;
-    img.jsonsrc = jsonref;
+    img.jsonsrc = jsonurl;
   }
   else if (img.src != url)
   {
     img.dqmsrc = url;
-    img.jsonsrc = jsonref;
+    img.jsonsrc = jsonurl;
     GUI.ImgLoader.load(n+"."+row+"."+col, img, url, border, _IMG_BORDER_NEW);
     if (img.src.replace(/\?.*/, "?") != imgref)
       img.src = ROOTPATH + "/static/blank.gif";

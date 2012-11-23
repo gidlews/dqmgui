@@ -59,6 +59,7 @@
 #include <dlfcn.h>
 #include <math.h>
 #include <inttypes.h>
+#include <string>
 
 #ifndef __GLIBC__
 #include <stdio.h>
@@ -1576,11 +1577,11 @@ public:
   prepareJson(std::string &jsonData,
               std::string &type,
               const std::string &path,
-              const std::map<std::string, std::string> &,
+              const std::map<std::string, std::string> &opts,
               const std::string *streamers,
               DQMNet::Object *obj,
               size_t numobj,
-              IMGOPT *)
+              IMGOPT *IMGOPTS)
   {
     std::string reqspec;
     Image protoimg;
@@ -2444,16 +2445,17 @@ public:
   virtual const char *
   jsoner(void) const
     {
-      return "underconstruction";
+      return "overlay";
+//      return "underconstruction";
     }
 
-  py::tuple
-  plot(py::list overlay, py::dict opts)
+  std::string
+  callRoot(py::list overlay, py::dict opts, std::string &imagetype, const bool json = false) //@ToDo rename!!!!
     {
       std::map<std::string, std::string> options;
       bool imageok = false;
       std::string imagedata;
-      std::string imagetype;
+//      std::string imagetype;
       copyopts(opts, options);
 
       std::vector<std::string> streamers;
@@ -2509,24 +2511,52 @@ public:
       if (objects.size())
       {
         PyReleaseInterpreterLock nogil;
-        imageok = link_->render(imagedata, imagetype, path, options,
-				&streamers[0], &objects[0], objects.size(),
-				STDIMGOPTS);
+        if(!json)
+            imageok = link_->render(imagedata, imagetype, path, options,
+                    &streamers[0], &objects[0], objects.size(),
+                    STDIMGOPTS);
+        else
+            imageok = link_->prepareJson(imagedata, imagetype, path, options,
+                                &streamers[0], &objects[0], objects.size(),
+                                STDIMGOPTS);
       }
       else
       {
         PyReleaseInterpreterLock nogil;
 	streamer.clear();
 	clearobj(obj);
+	if(!json)
         imageok = link_->render(imagedata, imagetype, path, options,
 				&streamer, &obj, 1, STDIMGOPTS);
+    else
+        imageok = link_->prepareJson(imagedata, imagetype, path, options,
+                &streamer, &obj, 1, STDIMGOPTS);
       }
 
       // Return the image we produced.
       if (imageok)
-	return py::make_tuple(imagetype, imagedata);
+          return imagedata;
+      else {
+          imagetype = "";
+          return "";
+      }
+/*	return py::make_tuple(imagetype, imagedata);
       else
-	return py::make_tuple(py::object(), py::object());
+	return py::make_tuple(py::object(), py::object());*/
+    }
+  py::tuple
+  plot(py::list overlay, py::dict opts)
+    {
+      std::string imagetype;
+      std::string imagedata = callRoot(overlay, opts, imagetype, false);
+      return py::make_tuple(imagetype, imagedata);
+    }
+  py::str
+  getJson(py::list overlay, py::dict opts)
+    {
+      std::string imagetype;
+      py::str _str(callRoot(overlay, opts, imagetype, true));
+      return _str;
     }
 };
 
@@ -6309,6 +6339,10 @@ BOOST_PYTHON_MODULE(Accelerator)
     ("DQMOverlaySource", py::init<>())
     .add_property("plothook", &VisDQMOverlaySource::plotter)
     .add_property("jsonhook", &VisDQMOverlaySource::jsoner)
+<<<<<<< HEAD
+=======
+    .def("_getJson", &VisDQMOverlaySource::getJson)
+>>>>>>> FETCH_HEAD
     .def("_plot", &VisDQMOverlaySource::plot);
 
   py::class_<VisDQMStripChartSource, shared_ptr<VisDQMStripChartSource>,

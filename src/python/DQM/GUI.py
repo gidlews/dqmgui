@@ -497,6 +497,25 @@ class DQMOverlaySource(Accelerator.DQMOverlaySource):
                       "/%s/%s/%s" % (dsP, dsW, dsT), path))
     return self._plot(final, options)
 
+  # Generate an overlaid image.  Finds all the servers sources
+  # and generates final list of (source, runnr, dataset, path)
+  # tuples to pass to C++ layer to process.
+  def getJson(self, *junk, **options):
+    sources = dict((s.plothook, s) for s in self.server.sources
+           if getattr(s, 'jsonhook', None))
+
+    objs = options.get("obj", [])
+    if isinstance(objs, str): objs = [objs]
+
+    final = []
+    for o in objs:
+      (srcname, runnr, dsP, dsW, dsT, path) = o.split("/", 5)
+      if srcname in sources and srcname != "unknown":
+        final.append((sources[srcname], int(runnr),
+                      "/%s/%s/%s" % (dsP, dsW, dsT), path))
+    return self._getJson(final, options)
+
+
 # --------------------------------------------------------------------
 # Source for plotting strip charts of DQM objects.
 class DQMStripChartSource(Accelerator.DQMStripChartSource):

@@ -1168,109 +1168,112 @@ private:
       return true;
     }
 
-  void getJson(VisDQMObject *objs, size_t /*numobjs*/, DataBlob &jsondata)
+  void getJson(VisDQMObject *objs, size_t numobjs, DataBlob &jsondata)
   {
-    TObject *ob = objs[0].object;
     std::string json ="";
-    if (const TH1* const h = dynamic_cast<const TH1* const>(ob))
-    {
-      std::string jsonTemplate =
-          "{'hist':"
-          "{"
-          "'type':'%1'"
-          "%2"          //'title'
-          ",'stats':{%3}"
-          "%4"          //Xaxis
-          "%5"          //Yaxis
-          "%6"          //Zaxis for TH2 and TProfile2D, empty for TH1 and TProfile
-          ",'values':{"
-          "'min':%7"
-          ",'max':%8"
-          "}"
-          ",'bins':{"
-          "%9"
-          "}"
-          "%10"         // yMin for TProfile, zMin for TProfile2D, empty for the rest
-          "%11"         // yMax for TProfile, zMax for TProfile2D, empty for the rest
-          "%12"         // errorStyle for TProfile and TProfile2D, empty for the rest
-          "} "
-          "}";
-      if (const TH2* const h2 = dynamic_cast<const TH2* const>(ob))
-      {
-        if (const TProfile2D* const h2d = dynamic_cast<const TProfile2D* const>(ob))
+    for(int i=0; i!=numobjs; ++i) {
+        TObject *ob = objs[i].object;
+//        std::string json ="";
+        if (const TH1* const h = dynamic_cast<const TH1* const>(ob))
         {
-          json += StringFormat(jsonTemplate)
-              .arg(h2d->Class_Name())
-              .arg(optionalTextValueToJson<const char* const>("title", h2d->GetTitle()))
-              .arg(statsToJson<TH2>(h2d))
-              .arg(axisDataToJson(h2d->GetXaxis()))
-              .arg(axisDataToJson(h2d->GetYaxis()))
-              .arg(axisDataToJson(h2d->GetZaxis()))
-              .arg(h2d->GetMinimum())
-              .arg(h2d->GetMaximum())
-              .arg(binsToArray(h2d))
-              .arg(optionalNumericValueToJson<Double_t>("zMin", h2d->GetZmin()))
-              .arg(optionalNumericValueToJson<Double_t>("zMax", h2d->GetZmax()))
-              .arg(errorCodeToJson<TProfile2D>(h2d));
+            std::string jsonTemplate =
+              "{'hist':"
+              "{"
+              "'type':'%1'"
+              "%2"          //'title'
+              ",'stats':{%3}"
+              "%4"          //Xaxis
+              "%5"          //Yaxis
+              "%6"          //Zaxis for TH2 and TProfile2D, empty for TH1 and TProfile
+              ",'values':{"
+              "'min':%7"
+              ",'max':%8"
+              "}"
+              ",'bins':{"
+              "%9"
+              "}"
+              "%10"         // yMin for TProfile, zMin for TProfile2D, empty for the rest
+              "%11"         // yMax for TProfile, zMax for TProfile2D, empty for the rest
+              "%12"         // errorStyle for TProfile and TProfile2D, empty for the rest
+              "} "
+              "},";
+          if (const TH2* const h2 = dynamic_cast<const TH2* const>(ob))
+          {
+            if (const TProfile2D* const h2d = dynamic_cast<const TProfile2D* const>(ob))
+            {
+              json += StringFormat(jsonTemplate)
+                  .arg(h2d->Class_Name())
+                  .arg(optionalTextValueToJson<const char* const>("title", h2d->GetTitle()))
+                  .arg(statsToJson<TH2>(h2d))
+                  .arg(axisDataToJson(h2d->GetXaxis()))
+                  .arg(axisDataToJson(h2d->GetYaxis()))
+                  .arg(axisDataToJson(h2d->GetZaxis()))
+                  .arg(h2d->GetMinimum())
+                  .arg(h2d->GetMaximum())
+                  .arg(binsToArray(h2d))
+                  .arg(optionalNumericValueToJson<Double_t>("zMin", h2d->GetZmin()))
+                  .arg(optionalNumericValueToJson<Double_t>("zMax", h2d->GetZmax()))
+                  .arg(errorCodeToJson<TProfile2D>(h2d));
+            }
+            else
+            { /*just TH2*/
+              json += StringFormat(jsonTemplate)
+                  .arg(h2->Class_Name())
+                  .arg(optionalTextValueToJson<const char* const>("title", h2->GetTitle()))
+                  .arg(statsToJson<TH2>(h2))
+                  .arg(axisDataToJson(h2->GetXaxis()))
+                  .arg(axisDataToJson(h2->GetYaxis()))
+                  .arg(axisDataToJson(h2->GetZaxis()))
+                  .arg(h2->GetMinimum())
+                  .arg(h2->GetMaximum())
+                  .arg(binsToArray(h2))
+                  .arg("")
+                  .arg("")
+                  .arg("");
+            }
+          }
+          else
+          { /* not TH2 */
+            if (const TProfile* const   tprof = dynamic_cast<const TProfile* const >(ob))
+            {
+              json += StringFormat(jsonTemplate)
+                  .arg(tprof->Class_Name())
+                  .arg(optionalTextValueToJson<const char* const>("title", tprof->GetTitle()))
+                  .arg(statsToJson<TH1>(tprof))
+                  .arg(axisDataToJson(tprof->GetXaxis()))
+                  .arg(axisDataToJson(tprof->GetYaxis()))
+                  .arg("")
+                  .arg(tprof->GetMinimum())
+                  .arg(tprof->GetMaximum())
+                  .arg(binsToArray(tprof))
+                  .arg(optionalNumericValueToJson<Double_t>("yMax", tprof->GetYmax()))
+                  .arg(optionalNumericValueToJson<Double_t>("yMin", tprof->GetYmin()))
+                  .arg(errorCodeToJson<TProfile>(tprof));
+            }
+            else
+            { /*just TH1*/
+              json += StringFormat(jsonTemplate)
+                  .arg(h->Class_Name())
+                  .arg(optionalTextValueToJson<const char* const>("title", h->GetTitle()))
+                  .arg(statsToJson<TH1>(h))
+                  .arg(axisDataToJson(h->GetXaxis()))
+                  .arg(axisDataToJson(h->GetYaxis()))
+                  .arg("")
+                  .arg(h->GetMinimum())
+                  .arg(h->GetMaximum())
+                  .arg(binsToArray(h))
+                  .arg("")
+                  .arg("")
+                  .arg("");
+            }
+          }
         }
         else
-        { /*just TH2*/
-          json += StringFormat(jsonTemplate)
-              .arg(h2->Class_Name())
-              .arg(optionalTextValueToJson<const char* const>("title", h2->GetTitle()))
-              .arg(statsToJson<TH2>(h2))
-              .arg(axisDataToJson(h2->GetXaxis()))
-              .arg(axisDataToJson(h2->GetYaxis()))
-              .arg(axisDataToJson(h2->GetZaxis()))
-              .arg(h2->GetMinimum())
-              .arg(h2->GetMaximum())
-              .arg(binsToArray(h2))
-              .arg("")
-              .arg("")
-              .arg("");
-        }
-      }
-      else
-      { /* not TH2 */
-        if (const TProfile* const   tprof = dynamic_cast<const TProfile* const >(ob))
         {
-          json += StringFormat(jsonTemplate)
-              .arg(tprof->Class_Name())
-              .arg(optionalTextValueToJson<const char* const>("title", tprof->GetTitle()))
-              .arg(statsToJson<TH1>(tprof))
-              .arg(axisDataToJson(tprof->GetXaxis()))
-              .arg(axisDataToJson(tprof->GetYaxis()))
-              .arg("")
-              .arg(tprof->GetMinimum())
-              .arg(tprof->GetMaximum())
-              .arg(binsToArray(tprof))
-              .arg(optionalNumericValueToJson<Double_t>("yMax", tprof->GetYmax()))
-              .arg(optionalNumericValueToJson<Double_t>("yMin", tprof->GetYmin()))
-              .arg(errorCodeToJson<TProfile>(tprof));
+           json += StringFormat("{'hist': 'unsupported type %1'},").arg(ob->Class_Name());
         }
-        else
-        { /*just TH1*/
-          json += StringFormat(jsonTemplate)
-              .arg(h->Class_Name())
-              .arg(optionalTextValueToJson<const char* const>("title", h->GetTitle()))
-              .arg(statsToJson<TH1>(h))
-              .arg(axisDataToJson(h->GetXaxis()))
-              .arg(axisDataToJson(h->GetYaxis()))
-              .arg("")
-              .arg(h->GetMinimum())
-              .arg(h->GetMaximum())
-              .arg(binsToArray(h))
-              .arg("")
-              .arg("")
-              .arg("");
-        }
-      }
     }
-    else
-    {
-      json = "{'hist': 'unsupported type'}";
-    }
-
+    json = "{"+arrayToJson(json, "list") + "}";
     replacePseudoNumericValues(json);
     boost::replace_all(json, "'","\"");
 
