@@ -304,8 +304,10 @@ var json = _rt('dto').innerHTML,
     isIE = /msie/i.test(navigator.userAgent) && !/opera/i.test(navigator.userAgent);
 
     if(model.list.length == 1) {
+    	model.list[0].info = model.info;
+    	model.list[0].size =json.length;
         model = model.list[0];
-        model.hist.size =json.length;
+        
     } else {
 	model.size =json.length;
     }

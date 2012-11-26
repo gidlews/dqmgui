@@ -1585,6 +1585,18 @@ public:
   {
     std::string reqspec;
     Image protoimg;
+    for (int opt = 0; ! IMGOPTS[opt].label.empty(); ++opt)
+    {
+        std::map<std::string, std::string>::const_iterator pos
+          = opts.find(IMGOPTS[opt].label);
+        if (pos != opts.end()) {
+            if (! reqspec.empty())
+              reqspec += ';';
+            reqspec += pos->first;
+            reqspec += '=';
+            reqspec += pos->second;
+        }
+    }
     initimg(protoimg, path, reqspec, streamers, obj, numobj);
     Lock gate(&lock_);
     return ! quiet_ && makeJson(jsonData, type, protoimg, reqspec);
@@ -6339,10 +6351,7 @@ BOOST_PYTHON_MODULE(Accelerator)
     ("DQMOverlaySource", py::init<>())
     .add_property("plothook", &VisDQMOverlaySource::plotter)
     .add_property("jsonhook", &VisDQMOverlaySource::jsoner)
-<<<<<<< HEAD
-=======
     .def("_getJson", &VisDQMOverlaySource::getJson)
->>>>>>> FETCH_HEAD
     .def("_plot", &VisDQMOverlaySource::plot);
 
   py::class_<VisDQMStripChartSource, shared_ptr<VisDQMStripChartSource>,

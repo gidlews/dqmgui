@@ -173,7 +173,8 @@ static string optionalNumericValueToJson(const char* const name,
                                          T defaultValue = 0,
                                          bool avoidComma = false)
 {
-  if(value == defaultValue)
+  if(value == defaultValue   // if value is default
+          || value != value) // or NaN return nothing
     return "";
   return StringFormat("%1'%2':%3")
       .arg(avoidComma ? "" : ",")
@@ -329,5 +330,32 @@ static string statsToJson(const T* const hist)
       .arg(hist->GetBinContent(hist->GetXaxis()->GetLast() + 1));
   return result;
 }
+
+
+
+static string dqmAxisInfoToJson(const VisDQMAxisInfo axis)
+{
+    return StringFormat(
+            "%1" // type
+            "%2" // min
+            "%3" // max
+            )
+            .arg(optionalTextValueToJson("type", axis.type.c_str(), "",true))
+            .arg(optionalNumericValueToJson("min", axis.min))
+            .arg(optionalNumericValueToJson("max", axis.max))
+            ;
+}
+
+static string dqmInfoToJson(const VisDQMImgInfo info)
+{
+  return StringFormat(
+           "'xAxis':{%1},"
+           "'yAxis':{%2},"
+           "'zAxis':{%3}")
+          .arg(dqmAxisInfoToJson(info.xaxis))
+          .arg(dqmAxisInfoToJson(info.yaxis))
+          .arg(dqmAxisInfoToJson(info.zaxis));
+}
+
 
 #endif //DQM_VISDQMRENDERTOOLS_H

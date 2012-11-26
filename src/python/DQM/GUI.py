@@ -804,6 +804,7 @@ class DQMWorkspace:
            reset = None,
            add = None,
            zoom = None,
+           jsonmode = None,
            certzoom = None,
            **kwargs):
 
@@ -1015,6 +1016,11 @@ class DQMWorkspace:
       if not isinstance(zoom, str) or zoom not in ("yes", "no"):
         raise HTTPError(500, "Invalid Zoom show parameter")
       session['dqm.zoom.show'] = (zoom == "yes")
+
+    if jsonmode != None:
+      if not isinstance(jsonmode, str) or jsonmode not in ("yes", "no"):
+        raise HTTPError(500, "Invalid JsonMode parameter")
+      session['dqm.zoom.jsonmode'] = (jsonmode == "yes")
 
     if certzoom != None:
       if not isinstance(certzoom, str) or certzoom not in ("yes", "no"):

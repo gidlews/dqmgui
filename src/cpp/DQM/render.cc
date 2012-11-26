@@ -288,7 +288,7 @@ parseOption(const char *&p, const char *name, size_t len, std::string &value)
 // The image specification is expected to be a series of "key=value"
 // pairs separated by semicolons.
 static bool
-parseImageSpec(VisDQMImgInfo &i, const std::string &spec, const char *&error)
+parseImageSpec(VisDQMImgInfo &i, const std::string &spec, const char *&error, const bool json = false)
 {
   error = 0;
   i.imgspec = spec;
@@ -338,7 +338,7 @@ parseImageSpec(VisDQMImgInfo &i, const std::string &spec, const char *&error)
     }
   }
 
-  if (i.width < 0 || i.height < 0)
+  if (!json && (i.width < 0 || i.height < 0))
   {
     error = "image dimensions missing, zero or negative";
     return false;
@@ -813,6 +813,15 @@ protected:
 	  return false;
 	}
 
+    if (type == DQM_MSG_GET_JSON_DATA && ! parseImageSpec(info, spec, error, true))
+    {
+      logme()
+        << "ERROR: invalid JSON plot specification '"
+        << spec << "' for object '" << name
+        << "': " << error << std::endl;
+      return false;
+    }
+
         // Reconstruct the object, defaulting to missing in action.
 	std::vector<VisDQMObject> objs(numobjs);
         for (uint32_t i = 0; i < numobjs; ++i)
@@ -844,7 +853,7 @@ protected:
           blacklisted = doRender(info, &objs[0], numobjs, imgdata);
         else if(type == DQM_MSG_GET_JSON_DATA)
         {
-          getJson(&objs[0], numobjs, imgdata);
+          getJson(info, &objs[0], numobjs, imgdata);
           words[1] = DQM_REPLY_JSON_DATA;
         }
 	words[0] += imgdata.size();
@@ -1168,7 +1177,7 @@ private:
       return true;
     }
 
-  void getJson(VisDQMObject *objs, size_t numobjs, DataBlob &jsondata)
+  void getJson(VisDQMImgInfo &info, VisDQMObject *objs, size_t numobjs, DataBlob &jsondata)
   {
     std::string json ="";
     for(int i=0; i!=numobjs; ++i) {
@@ -1273,7 +1282,9 @@ private:
            json += StringFormat("{'hist': 'unsupported type %1'},").arg(ob->Class_Name());
         }
     }
-    json = "{"+arrayToJson(json, "list") + "}";
+    json = StringFormat("{%1,'dqmInfo':{%2}}")
+                .arg(arrayToJson(json, "list"))
+                .arg(dqmInfoToJson(info));
     replacePseudoNumericValues(json);
     boost::replace_all(json, "'","\"");
 
