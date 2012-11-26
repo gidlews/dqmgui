@@ -1360,6 +1360,7 @@ GUI.Plugin.DQMCanvas = new function()
   {
     return { size: _size, root: _rootPath,
              focus: _focus ? _focus : '',
+         jsonmode: _jsonMode ? 'yes' : 'no', 
 	     zoom: _showzoom.show ? 'yes' : 'no' };
   };
 
