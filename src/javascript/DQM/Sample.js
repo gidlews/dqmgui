@@ -627,10 +627,9 @@ GUI.Plugin.DQMSample = new function() {
     var selrun = (selds && cur.run == s.run);
     var selver = (selds && cur.version == s.version);
     result += _(template,
-                { type: s.type, run: s.run, dsname: s.dataset,
-                  val: (s.type.match(/.*relval.*/) ? s.version.replace(/^CMSSW_/, "") : s.run),
-                  style: (selrun ? _selemstyle : ""),
-                  importversion: s.importversion});
+ 	    	{ type: s.type, run: s.run, dsname: s.dataset,
+		  val: (s.type.match(/.*relval.*/) ? s.version.replace(/^CMSSW_/, "") : s.run),
+ 		  style: (selrun ? _selemstyle : "")});
     return result;
   };
 

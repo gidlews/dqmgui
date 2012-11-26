@@ -357,5 +357,4 @@ static string dqmInfoToJson(const VisDQMImgInfo info)
           .arg(dqmAxisInfoToJson(info.zaxis));
 }
 
-
 #endif //DQM_VISDQMRENDERTOOLS_H

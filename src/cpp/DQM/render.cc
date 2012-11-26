@@ -837,25 +837,24 @@ protected:
 	  objs[i].reference = 0;
         }
 
-        if (type == DQM_MSG_GET_IMAGE_DATA)
-          if(! readRequest(info, odata, objs, numobjs))
-            return false;
+	if (type == DQM_MSG_GET_IMAGE_DATA)
+		if(! readRequest(info, odata, objs, numobjs))
+			return false;
 
-        if (type == DQM_MSG_GET_JSON_DATA)
-          if(! readJsonRequest(odata, objs, numobjs))
-            return false;
+	if (type == DQM_MSG_GET_JSON_DATA)
+		if(! readJsonRequest(odata, objs, numobjs))
+			return false;
 
-        // Now render and build response.
+	// Now render and build response.
 	DataBlob imgdata;
-        bool blacklisted = false;
-        uint32_t words[2] = { sizeof(words), DQM_REPLY_IMAGE_DATA };
-        if(type == DQM_MSG_GET_IMAGE_DATA)
-          blacklisted = doRender(info, &objs[0], numobjs, imgdata);
-        else if(type == DQM_MSG_GET_JSON_DATA)
-        {
-          getJson(info, &objs[0], numobjs, imgdata);
-          words[1] = DQM_REPLY_JSON_DATA;
-        }
+	bool blacklisted = false;
+	uint32_t words[2] = { sizeof(words), DQM_REPLY_IMAGE_DATA };
+	if(type == DQM_MSG_GET_IMAGE_DATA)
+		blacklisted = doRender(info, &objs[0], numobjs, imgdata);
+	else if(type == DQM_MSG_GET_JSON_DATA) {
+		getJson(info, &objs[0], numobjs, imgdata);
+		words[1] = DQM_REPLY_JSON_DATA;
+	}
 	words[0] += imgdata.size();
 	msg->data.reserve(msg->data.size() + words[0]);
 	copydata(msg, &words[0], sizeof(words));
@@ -1506,10 +1505,39 @@ private:
 	  if (numobjs > 1)
 	    h->SetLineWidth(2);
         }
-
+        gStyle->SetOptStat(0);
         // Draw the main object on top.
         ob->Draw(ri.drawOptions.c_str());
+		if (TProfile* tprof = dynamic_cast<TProfile*>(ob)) {
+			TText *t2 = new TText(.5, .42, "TPROFILE!!!");
+			Color_t c = TColor::GetColor(178, 32, 32);
+			t2->SetNDC(kTRUE);
+			t2->SetTextSize(0.10);
+			t2->SetTextAlign(22);
+			t2->SetTextColor(c);
+			t2->Draw();
+//			Option_t errorOption = "s";
+//			tprof->SetErrorOption("s");
+//			tprof->SetMinimum();
+		} else {/*
+			TText *t2 = new TText(.5, .42, "not!!!");
+			Color_t c = TColor::GetColor(178, 32, 32);
+			t2->SetNDC(kTRUE);
+			t2->SetTextSize(0.10);
+			t2->SetTextAlign(22);
+			t2->SetTextColor(c);
+			t2->Draw();*/
+		}
 
+		if (const TProfile2D* const tprof = dynamic_cast<const TProfile2D* const>(ob)) {
+			TText *t2 = new TText(.5, .42, "TPROFILE2D!!!");
+			Color_t c = TColor::GetColor(32, 132, 32);
+			t2->SetNDC(kTRUE);
+			t2->SetTextSize(0.10);
+			t2->SetTextAlign(22);
+			t2->SetTextColor(c);
+			t2->Draw();
+		}
         // Maybe draw overlay from reference and other objects.
 	for (size_t n = 0; n < numobjs; ++n)
         {

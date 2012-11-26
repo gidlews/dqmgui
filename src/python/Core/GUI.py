@@ -329,7 +329,7 @@ class Server:
                       re.sub(r'/\*(?:.|[\r\n])*?\*/', '', text)))))
       self.css += [(filename, "\n" + clean + "\n")]
 
-  def _addJSFragment(self, filename, minimise=True):
+  def _addJSFragment(self, filename, minimise=False):
     """Add a piece of javascript to the master HTML page."""
     if not dict(self.js).has_key(filename):
       text = file(filename).read()
@@ -568,8 +568,38 @@ class Server:
           severity=logging.WARNING)
 
     self._noResponseCaching()
-    return str(e);
+    return str(e);    
+      
+  @expose
+  def plotjsonfairy(self, *args, **kwargs):
+    """General session-independent access path for dynamic images.
+    The first subdirectory argument contains the name of the
+    "source plot hook" able to handle the plotting request.
+    The rest of the processing is given over to the hook."""
+    try:
+      if len(args) >= 1:
+        for s in self.sources:
+          if getattr(s, 'plothook', None) == args[0]:
+#            (type, data) = s.json(*args[1:], **kwargs)
+            data = s.getJson(*args[1:], **kwargs)
+#            if type != None:
+#              self._noResponseCaching()
+#              response.headers['Content-Length'] = str(len(data))
+#              response.headers['Content-Type'] = type
+            #return self.contentpath+ "   " + data
+            template = self._maybeRefreshFile(self.templates, "th2")
+            variables = {'TITLE'		 : 'AAAALA',            'JSON'		 : data};
+            return str(Template(template, searchList=[variables]))
+            break
+    except Exception, e:
+      o = StringIO()
+      traceback.print_exc(file=o)
+      log("WARNING: unable to produce a plot: "
+          + (str(e) + "\n" + o.getvalue()).replace("\n", " ~~ "),
+          severity=logging.WARNING)
 
+    self._noResponseCaching()
+    return str(e);
 
   # -----------------------------------------------------------------
   @expose
