@@ -1505,7 +1505,7 @@ private:
 	  if (numobjs > 1)
 	    h->SetLineWidth(2);
         }
-        gStyle->SetOptStat(0);
+//        gStyle->SetOptStat(0);
         // Draw the main object on top.
         ob->Draw(ri.drawOptions.c_str());
 		if (TProfile* tprof = dynamic_cast<TProfile*>(ob)) {

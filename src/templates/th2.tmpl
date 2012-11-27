@@ -37,6 +37,9 @@ body {
 	font-size: 2em;
 	font-weight:bold;
 }
+.link:hover {
+    cursor:pointer
+}
 </style>
 <body style="width:100px">
 <!--  <script src="d3\d3.v2.js"></script> -->
@@ -90,11 +93,13 @@ function drawTH2() {
 		.attr("width",statsBoxWidth)
 		.attr("height",titleHeight)
 		.attr("fill","white")
+        .attr("class","link")
 //		.attr("stroke","black")
 //		.attr("stroke-width", 2);
 		
 	statsLabel.append("text")
 		.text("Stats")
+        .attr("class","link")
 		.attr("dominant-baseline","middle")
 		.attr("text-anchor","middle")
 		.attr("transform","translate("+statsBoxWidth/2+","+titleHeight/2+")");
@@ -557,28 +562,89 @@ function drawTH2() {
 	}
 	
 	
-	
-	
+    var titleBox = document.getElementById("title").getBBox();	
+	var statsX = Math.max(titleBox.width, width)
+	var statsBoxWidth = 150, statsBoxHeight = 220; 
 	var statsBox = 
 		main.append("g")
 		 .attr("id","statsBox")
-		 .attr("transform","translate(" + (width) + "," + plotAreaMargin.top + ")")
+		 .attr("transform","translate(" + (svgWidth - statsBoxWidth) + "," + plotAreaMargin.top + ")")
 		 .attr("display","none");
-	
+
 	statsBox.append("rect")
-		.attr("width",plotAreaMargin.top * 0.8)
-		.attr("height",svgWidth - document.getElementById("title").width / 2)
+		.attr("width",statsBoxWidth)
+		.attr("height",statsBoxHeight)
 		.attr("fill","white")
-		.attr("stroke","black") 
+		.attr("stroke","black")
 		.attr("stroke-width", 2);
-		
+	
 	statsBox.append("text")
 		.text("X ")
 		.attr("dominant-baseline","hanging")
 		.attr("text-anchor","end")
 		.attr("font-size",15)
-		.attr("transform","translate("+(100-2)+","+0+")")
-		.on("click",function() {d3.select("#statsBox").attr("display","none")});	
+		.attr("transform","translate("+(statsBoxWidth-2)+","+2+")")
+		.attr("class","link")
+		.on("click",function() {d3.select("#statsBox").attr("display","none")});
+    statsBox.selectAll("tspan")
+
+	var statsNames = statsBox.append("text")
+        .attr("transform","translate("+(2)+","+18+")");
+    var statsVals = statsBox.append("text")
+        .attr("transform","translate("+(2)+","+18+")")
+    for(var k in json.hist.stats) {
+        statsNames
+        .append("tspan")
+         .attr("dy",15).attr("x",0)
+         .text(k);        
+        if( typeof json.hist.stats[k] != "object") {  
+           statsVals
+            .append("tspan")
+//            .attr("transform","translate("+(statsBoxWidth-2)+","+20+")")
+            .attr("text-anchor","end")            
+            .attr("dy",15).attr("x",statsBoxWidth-5)
+            .text(json.hist.stats[k]);
+             
+        } else {
+            var wasObj = true;
+            for(var axis in json.hist.stats[k]) {
+                if(!wasObj) {
+                    statsNames
+                    .append("tspan")
+                     .attr("dy",15).attr("x",0)
+                     .text(" ");
+                }
+                wasObj = false;
+                statsNames
+                .append("tspan")
+                 .attr("x",30)
+                 .text(axis);
+                var wasSubObj = true;                
+                for(var vals in json.hist.stats[k][axis]) {
+
+                    if(!wasSubObj) {
+                        statsNames
+                        .append("tspan")
+                         .attr("dy",15).attr("x",0)
+                         .text(" ");
+                    }
+                    wasSubObj = false;
+                    statsNames
+                    .append("tspan")
+                     .attr("x",45)
+                     .text(vals);
+                    
+                    statsVals
+                    .append("tspan")
+        //            .attr("transform","translate("+(statsBoxWidth-2)+","+20+")")
+                    .attr("text-anchor","end")
+                    .attr("dy",15).attr("x",statsBoxWidth-5)
+                    .text(json.hist.stats[k][axis][vals]);
+                }
+            }
+        }
+    }
+
 
 	
 	svg
@@ -596,8 +662,6 @@ function drawTH2() {
 
 }
 
-
-
 function redraw() {
 	alert("redraw!")
 	 if(parent && parent.GUI) {
@@ -614,11 +678,6 @@ function redraw() {
 			drawTH2();
 	 }
 }
-
-
-
-
-
 
  var start = new Date();
  var json = JSON.parse('$JSON').list[0];
