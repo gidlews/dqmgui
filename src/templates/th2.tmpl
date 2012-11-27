@@ -131,7 +131,7 @@ function drawTH2() {
 			 .domain([json.hist.yaxis.first.value
 			          ,json.hist.yaxis.last.value])
 			 .range([plotHeight, 0]);
-	} else if(json.hist.type == "TH1") {
+	} else if(json.hist.type == "TH1" || json.hist.type == "TProfile") {
 		y= d3.scale.linear()
 		 .domain([json.hist.values.min
 		          ,json.hist.values.max])
@@ -657,7 +657,7 @@ function redraw() {
  
  
  
-	if(json.hist.type == "TH1") {
+	if(json.hist.type == "TH1" || json.hist.type == "TProfile") {
 
 		plotAreaMargin.right = 0; 
 		drawTH2();
