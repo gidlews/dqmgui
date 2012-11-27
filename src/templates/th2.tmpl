@@ -239,9 +239,9 @@ function drawTH2() {
 	 	var ytitle = d3.select("#yaxis").append("g").attr("id","gytitle").append("text")
 		  	.text(json.hist.yaxis.title)
 			.attr("transform","translate("+
-					(document.getElementById("yaxis").getBBox().x-5)+", 0)  rotate(90)")
-			.attr("text-anchor","begin")
-			.attr("dominant-baseline","hanging")
+					(document.getElementById("yaxis").getBBox().x-5)+", 0)  rotate(-90)")
+			.attr("text-anchor","end")
+			.attr("dominant-baseline","auto")//hanging
 			.attr("class","axistitle")
 			.attr("id","ytitle")
 			.attr("x",-10)
