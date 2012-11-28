@@ -311,8 +311,7 @@ static string statWithErrorToJson(const TH2* const hist, const char* const name)
       .arg(name);
 }
 
-template<typename T>
-static string statsToJson(const T* const hist)
+static string statsToJson(const TH1* const hist)
 {
   string result ="";
   result += StringFormat(""
@@ -331,6 +330,20 @@ static string statsToJson(const T* const hist)
   return result;
 }
 
+static string statsToJson(const TH2* const hist)
+{
+  string result ="";
+  result += StringFormat(""
+                         "'name':'%1'"
+                         ",'entries':%2"
+                         ",'mean':{%3}"
+                         ",'rms':{%4}")
+      .arg(hist->GetName())
+      .arg(hist->GetEntries(),0,'f')
+      .arg(statWithErrorToJson(hist, "mean"))
+      .arg(statWithErrorToJson(hist, "rms"));
+  return result;
+}
 
 
 static string dqmAxisInfoToJson(const VisDQMAxisInfo axis)
