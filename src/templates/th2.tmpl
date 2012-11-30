@@ -88,7 +88,12 @@ function drawTH2() {
 			main.append("g")
 			 .attr("id", "stats")
 			 .attr("transform","translate(" + (width) + "," + 0 + ")")
-			 .on("click",function() {d3.select("#statsBox").attr("display","block")}) //
+			 .on("click",function() {
+			     if(d3.select("#statsBox").attr("display") == "none")
+			         d3.select("#statsBox").attr("display","block");
+			     else
+			         d3.select("#statsBox").attr("display","none");
+			 }) //
 	statsLabel.append("rect")
 		.attr("width",statsBoxWidth)
 		.attr("height",titleHeight)
@@ -173,7 +178,7 @@ function drawTH2() {
 	
 	svg.append("g")
 	    .attr("class", "x axis")
-	    .attr("transform", "translate(0," + plotHeight + ")")
+	    .attr("transform", "translate(0," + (plotHeight +1)+ ")")
 	    .attr("id","xaxis")
 	    .append("g")
 	    .attr("id","xaxisscale")	    
@@ -182,6 +187,7 @@ function drawTH2() {
 	svg.append("g")
 	    .attr("class", "y axis")
 	    .attr("id","yaxis")
+	    .attr("transform", "translate(-1,0)")
 	    .append("g")
 	    .attr("id","yaxisscale")
 	    .call(yAxis);	
@@ -268,7 +274,7 @@ function drawTH2() {
 			d3.select("#yaxisscale").selectAll("text").style("font-size", yLabelSize+"px");
 			if(ytitle) {
 				yTitleSize -= 0.2; 
-				ytitle.attr("transform","translate("+(document.getElementById("yaxisscale").getBBox().x)+", "+(titleBox.y + titleBox.height)+")  rotate(90)")
+				ytitle.attr("transform","translate("+(document.getElementById("yaxisscale").getBBox().x)+", "+0+")  rotate(-90)")
 				.style("font-size", yTitleSize+"em");
 			}
 		}
@@ -424,7 +430,7 @@ function drawTH2() {
 		 .selectAll("rect")
 		   .data(values)
 		 .enter().append("rect")
-		 	.attr("x", cells.x + cells.width)
+		 	.attr("x", cells.x + cells.width + 1)
 			.attr("y", xx)
 			.attr("height", xx.rangeBand())
 			.attr("width", plotAreaMargin.right * 0.3)
@@ -571,9 +577,9 @@ function drawTH2() {
 		 .attr("transform","translate(" + (svgWidth - statsBoxWidth) + "," + plotAreaMargin.top + ")")
 		 .attr("display","none");
 
-	statsBox.append("rect")
+	var statsRect = statsBox.append("rect")
 		.attr("width",statsBoxWidth)
-		.attr("height",statsBoxHeight)
+		.attr("height",10)
 		.attr("fill","white")
 		.attr("stroke","black")
 		.attr("stroke-width", 2);
@@ -582,6 +588,7 @@ function drawTH2() {
 		.text("X ")
 		.attr("dominant-baseline","hanging")
 		.attr("text-anchor","end")
+		.attr("font-weight", "bold")
 		.attr("font-size",15)
 		.attr("transform","translate("+(statsBoxWidth-2)+","+2+")")
 		.attr("class","link")
@@ -589,22 +596,24 @@ function drawTH2() {
     statsBox.selectAll("tspan")
 
 	var statsNames = statsBox.append("text")
+	    .attr("id", "statsNames")
+	    .attr("font-weight", "bold")
         .attr("transform","translate("+(2)+","+18+")");
     var statsVals = statsBox.append("text")
+        .attr("id", "statsVals")
         .attr("transform","translate("+(2)+","+18+")")
     for(var k in json.hist.stats) {
         statsNames
         .append("tspan")
          .attr("dy",15).attr("x",0)
          .text(k);        
-        if( typeof json.hist.stats[k] != "object") {  
+        if( typeof json.hist.stats[k] != "object") {
            statsVals
             .append("tspan")
 //            .attr("transform","translate("+(statsBoxWidth-2)+","+20+")")
-            .attr("text-anchor","end")            
+            .attr("text-anchor","end")
             .attr("dy",15).attr("x",statsBoxWidth-5)
             .text(json.hist.stats[k]);
-             
         } else {
             var wasObj = true;
             for(var axis in json.hist.stats[k]) {
@@ -617,11 +626,10 @@ function drawTH2() {
                 wasObj = false;
                 statsNames
                 .append("tspan")
-                 .attr("x",30)
+                 .attr("x",32)
                  .text(axis);
                 var wasSubObj = true;                
                 for(var vals in json.hist.stats[k][axis]) {
-
                     if(!wasSubObj) {
                         statsNames
                         .append("tspan")
@@ -644,8 +652,94 @@ function drawTH2() {
             }
         }
     }
+    if(json.hist.type == "TH1" || json.hist.type == "TProfile") {
+        statsNames
+        .append("tspan")
+         .attr("dy",15).attr("x",0)
+         .text("integral");
+        
+        statsVals
+        .append("tspan")
+//        .attr("transform","translate("+(statsBoxWidth-2)+","+20+")")
+        .attr("text-anchor","end")
+        .attr("dy",15).attr("x",statsBoxWidth-5)
+        .text(bins.integral);
+    }
+    statsBox.attr("display","block")
+    var statsNamesBox = document.getElementById("statsNames").getBBox();
+    var statsBoxHeight= statsNamesBox.y + statsNamesBox.height+18;
+    if(json.hist.type == "TH2" || json.hist.type == "TProfile2D" ) {
+        statsNames
+        .append("tspan")
+         .attr("dy",15).attr("x",0)
+         .text("integral");
+        statsNamesBox = document.getElementById("statsNames").getBBox();
+        statsBoxHeight= statsNamesBox.y + statsNamesBox.height+18;
+        var pos = 0;
 
-
+        var integral = 
+            statsBox
+            .append("g")
+            .attr("id","integral")
+        var integralRow1 =
+            integral
+        .append("text")
+                .attr("text-anchor","end")
+        .attr("transform","translate("+(statsBoxWidth-5)+","+statsBoxHeight+")");
+        
+        var integralRow2 =             
+            integral
+            .append("text")
+                    .attr("text-anchor","end")
+            .attr("transform","translate("+(statsBoxWidth-5)+","+(statsBoxHeight+15)+")");
+;
+        
+        var integralRow3 = 
+            integral
+        .append("text")
+                .attr("text-anchor","end")
+        .attr("transform","translate("+(statsBoxWidth-5)+","+(statsBoxHeight+30)+")");
+        var pos = 0;
+        for(var i = 2 ; i!= -1 ; --i) {
+            integralRow2 
+             .append("tspan")
+            .attr("x", pos)
+             .text(bins.integral[1][i]);
+            
+            integralRow1 
+            .append("tspan")
+            .attr("x", pos)
+            .text(bins.integral[0][i]);
+            
+            integralRow3 
+            .append("tspan")
+            .attr("x", pos)
+            .text(bins.integral[2][i]);
+            pos = -(document.getElementById("integral").getBBox().width+10);
+            
+        }    
+    }
+    
+    statsNamesBox = document.getElementById("statsBox").getBBox();
+    statsBoxHeight= statsNamesBox.y+statsNamesBox.height;
+    statsBox.attr("display","none")
+   
+    var xDelta = 0; 
+    var statsValsBox = document.getElementById("statsVals").getBBox();
+    
+    if(statsNamesBox.x > statsValsBox.x) {
+        xDelta = statsValsBox.x - 30;
+    } else {
+        if(statsNamesBox.x + 30 > statsValsBox.x) {
+            xDelta = (statsNamesBox.x - 30);
+        }
+    }
+    if (xDelta != 0) {
+        statsRect.attr("x", xDelta )
+                 .attr("width", statsBoxWidth + Math.abs(xDelta));
+        statsNames.attr("transform", "translate("+(xDelta + 2)+ ",18)");
+    }
+    statsRect.attr("height", statsBoxHeight+2);
 	
 	svg
 		.attr("transform", "translate(" + plotAreaMargin.left + "," + (plotAreaMargin.top) + ")");

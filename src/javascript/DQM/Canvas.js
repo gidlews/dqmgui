@@ -1389,11 +1389,11 @@ GUI.Plugin.DQMCanvas = new function()
     _jsonWin.on('bodyresize', function(el, w, h) {
         if(w < 0 || h < 0) return;
         _gui.asyncCall(_url() + "/setJsonZoom?w=" + w + ';h=' +h);
-    });
+    }, _self);
     _jsonWin.on('move',  function(el, x, y) {
         if(x < 0 || y < 0) return;
         _gui.asyncCall(_url() + "/setJsonZoom?x=" + x + ';y=' +y);
-    })    
+    }, _self)    
     _jsonWin.show(this);
     _jsonWin.setVisible(false);
     tabPanel.setAutoScroll(false);
