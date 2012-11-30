@@ -1381,7 +1381,7 @@ GUI.Plugin.DQMCanvas = new function()
                 scope : _self,
                 handler : function(event, toolEl, panel, tc) {
                     _jsonWin.setVisible(false);
-                    _additionalDataButton.toggle();
+                    _jsonDataButton.toggle();
                     _self.switchJsonMode();
                 }
             }]
@@ -1389,6 +1389,10 @@ GUI.Plugin.DQMCanvas = new function()
     _jsonWin.on('bodyresize', function(el, w, h) {
         if(w < 0 || h < 0) return;
         _gui.asyncCall(_url() + "/setJsonZoom?w=" + w + ';h=' +h);
+        
+        if(window.frames[1] && window.frames[1].redraw) {
+            window.frames[1].redraw(w - 10,h - 50);
+        }
     }, _self);
     _jsonWin.on('move',  function(el, x, y) {
         if(x < 0 || y < 0) return;
