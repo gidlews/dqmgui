@@ -79,8 +79,8 @@ function drawHist() {
 	 	   .append("g")
 	 	   .attr("transform", "translate(" + plotArea.margin.left + "," + plotArea.margin.top + ")");
     
-	plotAreawidth = svgWidth - plotArea.margin.left - plotArea.margin.right;
-	plotAreaheight = svgHeight - plotArea.margin.top - plotArea.margin.bottom;
+	plotArea.width = svgWidth - plotArea.margin.left - plotArea.margin.right;
+	plotArea.height = svgHeight - plotArea.margin.top - plotArea.margin.bottom;
     nXbins = bins.content[0].length;
     nYbins = bins.content.length;
     
@@ -200,20 +200,8 @@ function drawAxis(hist) {
     x = d3.scale.linear()
     .domain([ json.hist.xaxis.first.value, 
             json.hist.xaxis.last.value])
-      .range([0, plotAreawidth]);
+      .range([0, plotArea.width]);
 
-    if(isTH2(hist.type)) {
-        y= d3.scale.linear()
-             .domain([hist.yaxis.first.value
-                      ,hist.yaxis.last.value])
-             .range([plotAreaheight, 0]);
-    } else if(isTH1(hist.type)) {
-        y= d3.scale.linear()
-         .domain([hist.values.min
-                  ,hist.values.max])
-         .range([plotAreaheight, 0]);
-    }
-    
     var xAxis = d3.svg.axis()
     .scale(x)
     .orient("bottom");
@@ -223,32 +211,14 @@ function drawAxis(hist) {
     } else {
         xAxis.tickFormat(d3.format("s"));
     }
-    var yAxis = d3.svg.axis()
-        .scale(y)
-        .orient("left");
-    
-    if((isTH2(hist.type)) && hist.yaxis.labels) {
-        yAxis.ticks(nYbins);
-    } else {
-        yAxis.tickFormat(d3.format("s"));
-    }
     
     svg.append("g")
         .attr("class", "x axis")
-        .attr("transform", "translate(0," + (plotAreaheight +1)+ ")")
+        .attr("transform", "translate(0," + (plotArea.height +1)+ ")")
         .attr("id","xaxis")
         .append("g")
         .attr("id","xaxisscale")
         .call(xAxis);
-         
-    svg.append("g")
-        .attr("class", "y axis")
-        .attr("id","yaxis")
-        .attr("transform", "translate(-1,0)")
-        .append("g")
-        .attr("id","yaxisscale")
-        .call(yAxis);
-    
     if(hist.xaxis.labels) {
         var gLabels = d3.select("#xaxisscale")
         var oldLabel = d3.select("#xaxisscale").select("text");
@@ -262,10 +232,89 @@ function drawAxis(hist) {
             .text(function(d) {return d.value;})
             .attr("class","label")
             .attr("text-anchor","middle")//begin
-            .attr("dominant-baseline","hanging")//middle        
-            .attr("transform",function(d) {return "translate("+x(d.center)+","+(labelsPosition+5)+")"/*+" rotate(30)"*/});
+            .attr("dominant-baseline","hanging")//middle
+            .attr("x", function(d){return x(d.center);})
+            .attr("y", labelsPosition+5)            
+        
+        for(var i = 1; i != gLabels.selectAll(".label")[0].length; ++i) {
+            var firstLabel = gLabels.selectAll(".label")[0][i-1].getBBox();
+            var secondLabel = gLabels.selectAll(".label")[0][i].getBBox();
+            if(Math.abs(firstLabel.x + firstLabel.width) > Math.abs(secondLabel.x)) {
+                 gLabels.selectAll(".label").each(function() {
+                     d3.select(this)
+                      .attr("text-anchor","begin")
+                      .attr("dominant-baseline","middle")                      
+                      .attr("transform","translate("+
+//                             d3.select(this).attr("x")+","+
+                              0+","+
+                             0+") " +
+                             		"rotate("+90+" "+d3.select(this).attr("x")+",3"+")")
+//                      .attr("x", 0)
+                      .attr("y", 3);
+                 })
+                 var xAxisBox = document.getElementById("xaxis").getBBox();
+                 if(xAxisBox.height > plotArea.margin.bottom) {
+                     var yDelta = (xAxisBox.height - plotArea.margin.bottom) + 10;
+                     plotArea.height -= yDelta;
+                     plotArea.margin.bottom += yDelta;
+                     d3.select("#xaxis")
+                     .attr("transform", "translate(0," + (plotArea.height +1)+ ")")
+                 }
+                break;
+            }
+        }
     }
-     
+        
+    if(hist.xaxis.title) {
+        var xAxisBox = document.getElementById("xaxis").getBBox();
+        var xtitle = d3.select("#xaxis").append("text")
+            .text(hist.xaxis.title)
+            .attr("transform","translate("+(plotArea.width /*+ plotArea.margin.right*/)+", "+(xAxisBox.y+ xAxisBox.height)+")")
+            .attr("text-anchor","end")
+            .attr("dominant-baseline","hanging")            
+            .attr("id","xtitle")            
+            .attr("class","axistitle")
+            .attr("x",0)
+            .attr("y",0);
+/*      for(var size=1.5; size>=0; size-=0.1) {
+            ;
+            if(document.getElementById("xtitle").getBBox().width < plotArea.width 
+                    && document.getElementById("xaxis").getBBox().height < plotArea.margin.bottom)
+                break;
+            xtitle.style("font-size", size+"em");           
+        }*/
+    }
+    
+    if(isTH2(hist.type)) {
+        y= d3.scale.linear()
+             .domain([hist.yaxis.first.value
+                      ,hist.yaxis.last.value])
+             .range([plotArea.height, 0]);
+    } else if(isTH1(hist.type)) {
+        y= d3.scale.linear()
+         .domain([hist.values.min
+                  ,hist.values.max])
+         .range([plotArea.height, 0]);
+    }
+        
+    var yAxis = d3.svg.axis()
+        .scale(y)
+        .orient("left");
+    
+    if((isTH2(hist.type)) && hist.yaxis.labels) {
+        yAxis.ticks(nYbins);
+    } else {
+        yAxis.tickFormat(d3.format("s"));
+    }
+       
+    svg.append("g")
+        .attr("class", "y axis")
+        .attr("id","yaxis")
+        .attr("transform", "translate(-1,0)")
+        .append("g")
+        .attr("id","yaxisscale")
+        .call(yAxis);
+        
     if(isTH2(hist.type) &&  hist.yaxis.labels) {
         var gLabels = d3.select("#yaxisscale")
         d3.select("#yaxisscale")
@@ -279,28 +328,7 @@ function drawAxis(hist) {
             .attr("text-anchor","end")
             .attr("dominant-baseline","middle")         
             .attr("transform",function(d) {return "translate("+(labelsPosition-5)+","+y(d.center)+")"+" rotate(0)"});
-    }
-    
-        
-    if(hist.xaxis.title) {
-        var xAxisBox = document.getElementById("xaxis").getBBox();
-        var xtitle = d3.select("#xaxis").append("text")
-            .text(hist.xaxis.title)
-            .attr("transform","translate("+(plotAreawidth + plotArea.margin.right)+", "+(xAxisBox.y+ xAxisBox.height)+")")
-            .attr("text-anchor","end")
-            .attr("dominant-baseline","hanging")            
-            .attr("id","xtitle")            
-            .attr("class","axistitle")
-            .attr("x",0)
-            .attr("y",0);
-/*      for(var size=1.5; size>=0; size-=0.1) {
-            ;
-            if(document.getElementById("xtitle").getBBox().width < plotAreawidth 
-                    && document.getElementById("xaxis").getBBox().height < plotArea.margin.bottom)
-                break;
-            xtitle.style("font-size", size+"em");           
-        }*/
-    }
+    }    
     
     if(hist.yaxis && hist.yaxis.title) {
         var ytitle = d3.select("#yaxis").append("g").attr("id","gytitle").append("text")
@@ -318,10 +346,10 @@ function drawAxis(hist) {
     var yLabelSize = 10;
     var titleBox = document.getElementById("title").getBBox();
     //try only 5 times to corect it if not possible leave it
-    for (var i = 0; i<5 &&(document.getElementById("yaxis").getBBox().height > plotAreaheight
+    for (var i = 0; i<5 &&(document.getElementById("yaxis").getBBox().height > plotArea.height
             || document.getElementById("yaxis").getBBox().width > plotArea.margin.left); ++i) {
-        if(hist.yaxis && hist.yaxis.title && document.getElementById("ytitle").getBBox().width > plotAreaheight) {
-            yTitleSize =yTitleSize*plotAreaheight/document.getElementById("ytitle").getBBox().width - 0.05;
+        if(hist.yaxis && hist.yaxis.title && document.getElementById("ytitle").getBBox().width > plotArea.height) {
+            yTitleSize =yTitleSize*plotArea.height/document.getElementById("ytitle").getBBox().width - 0.05;
             ytitle.style("font-size", yTitleSize+"em");
         }
         if(document.getElementById("yaxis").getBBox().width > plotArea.margin.left) {
@@ -341,10 +369,10 @@ function drawAxis(hist) {
     var xLabelSize = 10;
     var xTickSize = 6;
     var i;
-    for (i = 0; i<5 &&(document.getElementById("xaxis").getBBox().width > plotAreawidth
+    for (i = 0; i<5 &&(document.getElementById("xaxis").getBBox().width > plotArea.width
             || document.getElementById("xaxis").getBBox().height > plotArea.margin.bottom); ++i) {
-        if(hist.xaxis.title && document.getElementById("xtitle").getBBox().width > plotAreawidth) {
-            xTitleSize =xTitleSize*plotAreawidth/document.getElementById("xtitle").getBBox().width - 0.05;
+        if(hist.xaxis.title && document.getElementById("xtitle").getBBox().width > plotArea.width) {
+            xTitleSize =xTitleSize*plotArea.width/document.getElementById("xtitle").getBBox().width - 0.05;
             xtitle.style("font-size", xTitleSize+"em");
         }
         if(document.getElementById("xaxis").getBBox().height > plotArea.margin.bottom) {
@@ -352,14 +380,10 @@ function drawAxis(hist) {
             xTickSize -= 0.5;
             d3.select("#xaxis").selectAll(".tick")
               .attr("y2",xTickSize);
-//          yLabels.style("font-size", yLabelSize+"px");
             if(hist.xaxis.labels) {
                 var labelsPosition =  (xAxisBox.y);
-//              d3.select("xaxisscale").selectAll("text")
                 xLabels
                  .style("font-size", xLabelSize+"px")
-//               .selectAll("text")
-                 .attr("transform",function(d) {return "translate("+x(d.center)+","+(xTickSize+2)+")"/*+" rotate(30)"*/});              
             } else
                 d3.select("#xaxisscale").selectAll("text")
                  .style("font-size", xLabelSize+"px")
@@ -368,7 +392,7 @@ function drawAxis(hist) {
             if(xtitle) {
                 xTitleSize -= 0.2; 
                 xtitle
-                 .attr("transform","translate("+(plotArea.margin.left+ plotAreawidth)+", "+(xLabelBox.y+xLabelBox.height)+")")
+                 .attr("transform","translate("+(plotArea.width/*+ plotArea.margin.right*/)+", "+(xLabelBox.y+xLabelBox.height)+")")
                  .style("font-size", xTitleSize+"em");
             }
         }
@@ -450,7 +474,7 @@ function drawTH2bins(hist) {
          defRectWidth = x(hist.xaxis.first.value+defWidthX) - x(hist.xaxis.first.value)
          xDefWidth = d3.scale.linear() 
               .domain([0,(hist.xaxis.last.value- hist.xaxis.first.value)/defWidthX]) 
-                .range([0, plotAreawidth]);
+                .range([0, plotArea.width]);
      }
     if(bins.widthY)         
         for(var i = 0; i!=nYbins; ++i) {
@@ -462,7 +486,7 @@ function drawTH2bins(hist) {
         defRectHeight = y(hist.yaxis.first.value)-y(hist.yaxis.first.value+defWidthY);
         yDefWidth = d3.scale.linear()
          .domain([0,(hist.yaxis.last.value- hist.yaxis.first.value)/defWidthY])
-         .range([plotAreaheight-defRectHeight, -defRectHeight]);        
+         .range([plotArea.height-defRectHeight, -defRectHeight]);        
     }
     
     var rects = svg
