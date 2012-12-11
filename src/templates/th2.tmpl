@@ -50,7 +50,8 @@ body {
 <script>
 
 var start = new Date(),
-    json = JSON.parse('$JSON').list[0],
+    content = JSON.parse('$JSON'),
+    json = content.list[0],
     bins = json.hist.bins,
     svgWidth, svgHeight,
     plotArea = {
@@ -68,10 +69,17 @@ function drawHist() {
         bottom: vertMargin, 
         left: horiMargin
     };
-
+  
     main
     .attr("width", svgWidth)
-    .attr("height", svgHeight)   	
+    .attr("height", svgHeight)
+ 
+    dx.minId = 0;
+    dx.maxId = json.hist.xaxis.last.id; 
+    if(json.hist.yaxis) {
+        dy.minId = 0;
+        dy.maxId = json.hist.yaxis.last.id;
+    }
     
 	drawTitleArea(json.hist)
 	
@@ -81,8 +89,14 @@ function drawHist() {
     
 	plotArea.width = svgWidth - plotArea.margin.left - plotArea.margin.right;
 	plotArea.height = svgHeight - plotArea.margin.top - plotArea.margin.bottom;
-    nXbins = bins.content[0].length;
-    nYbins = bins.content.length;
+	if(isTH2(json.hist.type)) {
+	    nXbins = bins.content[0].length;
+	    nYbins = bins.content.length;	    
+	} else {
+	    nXbins = bins.content.length;
+	}
+	    
+
     
 	drawAxis(json.hist);
 	
@@ -106,10 +120,10 @@ function drawHist() {
 }
 
 function isTH1(type) {
-    return (type == "TH1" || type == "TProfile") 
+    return (type == "TH1" || type == "TProfile")
 }
 function isTH2(type) {
-    return (type == "TH2" || type == "TProfile2D") 
+    return (type == "TH2" || type == "TProfile2D")
 }
 
 function redraw(w,h) {
@@ -133,7 +147,11 @@ var nXbins, nYbins;
 var x,y;
 var svg;
 var stats;
-
+var dx = {min: 0, max: 0, minId: 0, maxId: 0}, 
+    dy = {min: 0, max: 0, minId: 0, maxId: 0},
+    dz = {min: 0, max: 0, minId: 0, maxId: 0};
+var axisCustomised = {x: false, y: false, z: false};
+var eps = 0.00001;
 
 function drawTitleArea(hist) {
     var titleHeight = 0;
@@ -189,6 +207,31 @@ function drawTitleArea(hist) {
 }
 
 function drawAxis(hist) {
+    //quick fix... remove after changing width -> widthX for TH1 
+    if(bins.width)
+        bins.widthX =bins.width;
+    
+    // checking values od dqmInfo limits;
+    if(content.dqmInfo.xAxis.min != null || content.dqmInfo.xAxis.max != null) {
+        if(content.dqmInfo.xAxis.min < json.hist.xaxis.first.value)
+            content.dqmInfo.xAxis.min = null;
+        if(content.dqmInfo.xAxis.min > json.hist.xaxis.last.value)
+            content.dqmInfo.xAxis.min = null;
+        if(content.dqmInfo.xAxis.max > json.hist.xaxis.last.value)
+            content.dqmInfo.xAxis.max = null;
+        if(content.dqmInfo.xAxis.max < json.hist.xaxis.first.value)
+            content.dqmInfo.xAxis.max = null;
+        if(content.dqmInfo.xAxis.min > content.dqmInfo.xAxis.max) {
+            content.dqmInfo.xAxis.min = null;
+            content.dqmInfo.xAxis.max = null;
+        }
+    }
+    if(content.dqmInfo.yAxis.min != null || content.dqmInfo.yAxis.max != null) {
+        if(content.dqmInfo.yAxis.min > content.dqmInfo.yAxis.max) {
+            content.dqmInfo.yAxis.min = null;
+            content.dqmInfo.yAxis.max = null;
+        }
+    }
   /*  if(json.hist.yaxis)
       if(json.hist.yaxis.scale)
            if(json.hist.yaxis.scale == "log") {
@@ -201,13 +244,55 @@ function drawAxis(hist) {
     .domain([ json.hist.xaxis.first.value, 
             json.hist.xaxis.last.value])
       .range([0, plotArea.width]);
+    
+    dx.min = json.hist.xaxis.first.value; 
+    dx.max = json.hist.xaxis.last.value;
+    dx.minId = 0;
+    if(isTH1(json.hist.type))
+        dx.maxId = bins.content.length;
+    if(isTH2(json.hist.type))
+        dx.maxId = bins.content[0].length;
+    if(content.dqmInfo.xAxis.min != null || content.dqmInfo.xAxis.max != null) {
+        axisCustomised.x = true;
+        if(!bins.widthX) {
+//            dy.min = Math.floor(content.dqmInfo.yAxis.min - y.domain()[0]/ defWidthY) * defWidthY + y.domain()[0];
+            defWidthX = (hist.xaxis.last.value - hist.xaxis.first.value)/nXbins;        
+            if(content.dqmInfo.xAxis.min != null && content.dqmInfo.xAxis.min >  json.hist.xaxis.first.value) {
+                dx.minId = Math.floor((content.dqmInfo.xAxis.min - json.hist.xaxis.first.value) / defWidthX);
+                dx.min = dx.minId * defWidthX + json.hist.xaxis.first.value;
+            }
+            if(content.dqmInfo.xAxis.max != null && content.dqmInfo.xAxis.max <  json.hist.xaxis.last.value) {
+                dx.maxId = Math.ceil((content.dqmInfo.xAxis.max + eps - json.hist.xaxis.first.value) / defWidthX)
+                dx.max = dx.maxId * defWidthX + json.hist.xaxis.first.value;
+            }
+        } else {
+            var sumX = json.hist.xaxis.first.value;
+            var i=-1;
+            if(content.dqmInfo.xAxis.min != null && content.dqmInfo.xAxis.min >  json.hist.xaxis.first.value) {
+                if(content.dqmInfo.xAxis.min != null && content.dqmInfo.xAxis.min >  json.hist.xaxis.first.value) {
+                    while(sumX <= content.dqmInfo.xAxis.min) //find first bigger then min 
+                        sumX += bins.widthX[++i];
+                    dx.min = sumX - bins.widthX[i]; //save previous one
+                    dx.minId = i;
+                }
+            }
+            if(content.dqmInfo.xAxis.max != null && content.dqmInfo.xAxis.max <  json.hist.xaxis.last.value) {
+                while(sumX < content.dqmInfo.xAxis.max + eps) //continue searching until find first bigger then max  
+                    sumX += bins.widthX[++i];
+                dx.max = sumX;
+                dx.maxId = i+1;
+            }
+        }
+         x.domain([dx.min,dx.max]);
+    }
 
     var xAxis = d3.svg.axis()
     .scale(x)
     .orient("bottom");
-    
+    if(isTH2(hist.type) && dx.maxId - dx.minId < 10) 
+        xAxis.ticks(dx.maxId - dx.minId +1)
     if(hist.xaxis.labels) {
-        xAxis.ticks(nXbins);
+        xAxis.ticks(dx.maxId - dx.minId);
     } else {
         xAxis.tickFormat(d3.format("s"));
     }
@@ -244,12 +329,8 @@ function drawAxis(hist) {
                      d3.select(this)
                       .attr("text-anchor","begin")
                       .attr("dominant-baseline","middle")                      
-                      .attr("transform","translate("+
-//                             d3.select(this).attr("x")+","+
-                              0+","+
-                             0+") " +
+                      .attr("transform","translate("+0+","+0+") " +
                              		"rotate("+90+" "+d3.select(this).attr("x")+",3"+")")
-//                      .attr("x", 0)
                       .attr("y", 3);
                  })
                  var xAxisBox = document.getElementById("xaxis").getBBox();
@@ -290,19 +371,78 @@ function drawAxis(hist) {
              .domain([hist.yaxis.first.value
                       ,hist.yaxis.last.value])
              .range([plotArea.height, 0]);
-    } else if(isTH1(hist.type)) {
+    } 
+    if(isTH1(hist.type)) {
         y= d3.scale.linear()
          .domain([hist.values.min
                   ,hist.values.max])
          .range([plotArea.height, 0]);
+        if(content.dqmInfo.yAxis.min != null || content.dqmInfo.yAxis.max != null) {
+            if(content.dqmInfo.yAxis.min == null && content.dqmInfo.yAxis.max != null) {
+                content.dqmInfo.yAxis.min = hist.values.min;
+            }
+            if(content.dqmInfo.yAxis.max == null && content.dqmInfo.yAxis.min != null) {
+                content.dqmInfo.yAxis.max = hist.values.max;
+            }
+        }
     }
-        
+    dy.min = y.domain()[0];
+    dy.max = y.domain()[1];
+
+
+    
+//    content.dqmInfo.yAxis.max = 0
+    if(content.dqmInfo.yAxis.min != null|| content.dqmInfo.yAxis.max != null) {
+        axisCustomised.y = true;
+        if(!bins.widthY) {
+            if(isTH2(hist.type)) {
+                defWidthY = (hist.yaxis.last.value - hist.yaxis.first.value)/nYbins;
+                if(content.dqmInfo.yAxis.min != null && content.dqmInfo.yAxis.min >  y.domain()[0]) {
+                    dy.minId = Math.floor((content.dqmInfo.yAxis.min - y.domain()[0])/ defWidthY) 
+                    dy.min = dy.minId * defWidthY + y.domain()[0];
+                }
+                if(content.dqmInfo.yAxis.max != null && content.dqmInfo.yAxis.max <  y.domain()[1]) {
+                    dy.maxId = Math.ceil((content.dqmInfo.yAxis.max+ eps - y.domain()[0]) / defWidthY);
+                    dy.max = dy.maxId * defWidthY + y.domain()[0];
+                }
+            }
+            if(isTH1(hist.type)) {
+                dy.min = content.dqmInfo.yAxis.min;
+                dy.max = content.dqmInfo.yAxis.max;
+            }
+        } else {
+            var sumY = json.hist.yaxis.first.value;
+            var i=-1;
+            if(content.dqmInfo.yAxis.min != null && content.dqmInfo.yAxis.min >  y.domain()[0]) {
+                while(sumY < content.dqmInfo.yAxis.min) //find first bigger then min 
+                    sumY += bins.widthY[++i];
+                dy.min = sumY - bins.widthY[i]; //save previous one
+                dy.minId = i;
+//                dy.min = content.dqmInfo.yAxis.min;
+            }
+            if(content.dqmInfo.yAxis.max != null && content.dqmInfo.yAxis.max <  y.domain()[1]) {
+                while(sumY < content.dqmInfo.yAxis.max + eps) //continue searching until find first bigger then max  
+                    sumY += bins.widthY[++i];
+                dy.max = sumY;
+                dy.maxId = i+1;
+                //                dy.max = content.dqmInfo.yAxis.max;
+            }
+        }
+        y.domain([dy.min,dy.max]);
+    }
+    if(isTH1(hist.type) && axisCustomised.x && !axisCustomised.y) {
+        var yDelta = (dy.max - dy.min) * 0.02;
+        dy.min = d3.min(bins.content.slice(dx.minId, dx.maxId)) - yDelta;
+        dy.max = d3.max(bins.content.slice(dx.minId, dx.maxId)) + yDelta;
+        y.domain([dy.min,dy.max]);
+    }
     var yAxis = d3.svg.axis()
         .scale(y)
         .orient("left");
-    
+    if(isTH2(hist.type)  && dy.maxId - dy.minId < 10)
+        yAxis.ticks(dy.maxId - dy.minId + 1)
     if((isTH2(hist.type)) && hist.yaxis.labels) {
-        yAxis.ticks(nYbins);
+        yAxis.ticks(dy.maxId - dy.minId); 
     } else {
         yAxis.tickFormat(d3.format("s"));
     }
@@ -323,7 +463,7 @@ function drawAxis(hist) {
         yLabels = gLabels.selectAll(".label")
         .data(hist.yaxis.labels)
         .enter().append("text")
-            .text(function(d) {return d.value;})
+            .text(function(d) {if(d.center < dy.max && d.center > dy.min) return d.value;})
             .attr("class","label")
             .attr("text-anchor","end")
             .attr("dominant-baseline","middle")         
@@ -344,6 +484,7 @@ function drawAxis(hist) {
     }
     var yTitleSize = 1.5;
     var yLabelSize = 10;
+    
     var titleBox = document.getElementById("title").getBBox();
     //try only 5 times to corect it if not possible leave it
     for (var i = 0; i<5 &&(document.getElementById("yaxis").getBBox().height > plotArea.height
@@ -398,102 +539,246 @@ function drawAxis(hist) {
         }
     }
 }
-
+var lineString;
 function drawTH1bins(hist) {
     var defWidth;
     if(!bins.width) {
      defWidth = (hist.xaxis.last.value - hist.xaxis.first.value)/bins.content.length;
-    }    
-    stepBins = [{x:hist.xaxis.first.value, y:hist.values.min}];
-    var sumX = hist.xaxis.first.value;
-    var stepLabels = []; 
-    for(var i = 0; i!=bins.content.length; ++i) {
+    }
+    stepBins = [{x:dx.min, y:dy.min}];
+    var sumX = dx.min;
+    var width = bins.width;
+    contentArray = bins.content;
+    
+/*    widthY = widthY.slice(dy.minId, dy.maxId);
+    nYbins = contentArray.length    
+*/
+    contentArray = contentArray.slice(dx.minId, dx.maxId);
+    if(bins.width) {
+
+        width = width.slice(dx.minId, dx.maxId);
+    }
+//    var sumX = hist.xaxis.first.value;
+    lineString = "M";
+    var stepLabels = [];
+    for(var i = 0; i!=contentArray.length; ++i) {
+        var value = contentArray[i];
+        lineString += x(sumX) + ",";
+        if(contentArray[i] < dy.min) {
+            value = dy.min;
+            lineString += y(dy.min) + "M";
+        } else
+            if(contentArray[i] > dy.max) {
+                value = dy.max;
+                lineString += y(dy.max) + "M";
+            } else 
+                lineString += y(value) + "L";
         stepBins.push({
             x: sumX,
-            y: bins.content[i]
+            y: value
         })
         if(bins.width) {
-            sumX +=  bins.width[i];
+            sumX +=  width[i];
             if(hist.xaxis.labels)
                 stepLabels.push(sumX);
         } else {
             sumX += defWidth;
         }
+        /*if(bins.widthX != null && sumX > dx.max) {
+            stepBins.pop();
+            break;
+        }*/
+ /*       if(sumX <= dx.min) {
+            stepBins.pop();
+            continue;
+        }*/
+            
         stepBins.push({
             x: sumX,
-            y: bins.content[i]
+            y: value
         })
+        lineString += x(sumX) +","+y(value) + "L"; 
+/*        if(sumX > dx.max) {
+            break;
+        }*/
     }
+    lineString = lineString.substring(0,lineString.length -1 )
+    stepBins.push({x:sumX, y:dy.min});
     
-    stepBins.push({x:hist.xaxis.last.value, y:hist.values.min});
 
-    var tickLen = (hist.xaxis.last.value - hist.xaxis.first.value) / bins.content.length;
-    var sum = 0;
-    var line;
+    
     var binsTable;
-        line = d3.svg.line()
+    var line = d3.svg.line()
         .x(function(d,i) { return x(d.x); })
         .y(function(d) { return y(d.y+0.000001); });
     var area = d3.svg.area()
         .x(line.x())
         .y1(line.y())
-        .y0(y(hist.values.min));
-    
-    svg.datum(stepBins);
-    
-    svg.append("path")
+        .y0(y(dy.min));
+    var cells = svg 
+        .append("g")
+         .style("width", plotArea.width)
+         .style("heigth", plotArea.heigth)
+         
+//    cells.datum(stepBins);
+         cells.append("path")
+         .attr("class", "line")
+         .attr("d", lineString);
+/*    cells.append("path")
         .attr("class", "area")
         .attr("d", area);
 
-    svg.append("path")
+    cells.append("path")
         .attr("class", "line")
-        .attr("d", line);
+        .attr("d", line);*/
 }
-
+var stepsX, stepsY, contentArray,widthX, widthY ; 
+var minVal, maxVal, z, maxOfCols , minOfCols;
 function drawTH2bins(hist) {
-    var range = (hist.values.max-hist.values.min);
-    var min = hist.values.min;
-    var z = d3.scale.linear()
-       .domain([min, min+range/5, min+2*range/5, min+3*range/5, min+4*range/5,  hist.values.max])
-       .range(["rgb(255,0,255)","rgb(0,0,255)","rgb(0,255,255)", "rgb(0,255,0)","rgb(255,255,0)", "rgb(255,0,0)"])
-       .interpolate(d3.interpolateRgb);
-    
-    var stepsX=[hist.xaxis.first.value], stepsY=[hist.yaxis.first.value], 
-        defWidthX, defWidthY,
+
+    contentArray = bins.content;
+    widthX = hist.bins.widthX;
+    widthY = hist.bins.widthY;
+    stepsX=[dx.min]; stepsY=[dy.min];   
+     var   defWidthX, defWidthY,
         sumX = hist.xaxis.first.value, sumY = hist.yaxis.first.value,
         defRectWidth, defRectHeight,
         yDefWidth,xDefWidth;
-    
-    if(bins.widthX)
-        for(var i = 0; i!=nXbins; ++i) { 
-            sumX += bins.widthX[i];
-            stepsX.push(sumX);
-        }
-     else { 
-         defWidthX = (hist.xaxis.last.value - hist.xaxis.first.value)/nXbins;
-         defRectWidth = x(hist.xaxis.first.value+defWidthX) - x(hist.xaxis.first.value)
-         xDefWidth = d3.scale.linear() 
-              .domain([0,(hist.xaxis.last.value- hist.xaxis.first.value)/defWidthX]) 
-                .range([0, plotArea.width]);
-     }
-    if(bins.widthY)         
+//     alert("x"+dx.minId+", "+dx.maxId)
+//     alert("y"+dy.minId+", "+dy.maxId)
+     
+    if(bins.widthY) {
+        sumY = dy.min;
+        contentArray = contentArray.slice(dy.minId, dy.maxId);
+        widthY = widthY.slice(dy.minId, dy.maxId);
+        nYbins = contentArray.length
+//        var yMinId = 0, yMaxId = nYbins;
         for(var i = 0; i!=nYbins; ++i) {
-            sumY +=  bins.widthY[i];
+            sumY +=  widthY[i];
+/*            if(axisCustomised.y && sumY < dy.min) {
+                yMinId = i;
+                continue;
+            }*/
             stepsY.push(sumY)
+/*            if(axisCustomised.y && sumY > dy.max) {
+                yMaxId = i;
+                break;
+            }*/
         }
-    else {
+//        alert(yMinId  + "  " + yMaxId)
+//        contentArray = contentArray.slice(yMinId, yMaxId);
+//        widthY = widthY.slice(dx.minId, dx.maxId)
+
+    } else {
         defWidthY = (hist.yaxis.last.value - hist.yaxis.first.value)/nYbins;
         defRectHeight = y(hist.yaxis.first.value)-y(hist.yaxis.first.value+defWidthY);
-        yDefWidth = d3.scale.linear()
-         .domain([0,(hist.yaxis.last.value- hist.yaxis.first.value)/defWidthY])
-         .range([plotArea.height-defRectHeight, -defRectHeight]);        
+        if(axisCustomised.y) {
+            var yMinId = (dy.min - hist.yaxis.first.value)/defWidthY;
+            var yMaxId = (dy.max - hist.yaxis.first.value)/defWidthY;
+            contentArray = contentArray.slice(yMinId, yMaxId);
+            
+            nYbins = contentArray.length;     
+            yDefWidth = 
+                d3.scale.linear()
+                 .domain([0,(dy.max - dy.min)/defWidthY])
+                 .range([plotArea.height-defRectHeight, -defRectHeight]);            
+        } else {
+            yDefWidth = d3.scale.linear()
+             .domain([0,(hist.yaxis.last.value- hist.yaxis.first.value)/defWidthY])
+             .range([plotArea.height-defRectHeight, -defRectHeight]); 
+        }
     }
+
+    if(bins.widthX) {
+        var xMinId = 0, xMaxId = nXbins;
+        for(var i = 0; i!=nYbins; ++i) {
+//            contentArray[i] = contentArray[i].slice(xMinId, xMaxId);
+            contentArray[i] = contentArray[i].slice(dx.minId, dx.maxId);
+        }
+        widthX = widthX.slice(dx.minId, dx.maxId)
+        nXbins = contentArray[0].length
+        sumX = dx.min;
+        for(var i = 0; i!=nXbins; ++i) {
+            sumX += widthX[i];
+/*            if(axisCustomised.x && sumX < dx.min) {
+                xMinId = i;
+                continue;
+            }*/            
+            stepsX.push(sumX);
+/*            if(axisCustomised.x && sumX > dx.max) {
+                xMaxId = i+1;
+                break;
+            }*/
+        }
+    } else {
+         defWidthX = (hist.xaxis.last.value - hist.xaxis.first.value)/nXbins;
+         defRectWidth = x(hist.xaxis.first.value+defWidthX) - x(hist.xaxis.first.value)
+         if(axisCustomised.x) {
+             var xMinId = (dx.min - hist.xaxis.first.value)/defWidthX;
+             var xMaxId = (dx.max - hist.xaxis.first.value)/defWidthX;
+             for(var i = 0; i!=nYbins; ++i) {
+                 contentArray[i] = contentArray[i].slice(xMinId, xMaxId);
+             }
+             nXbins = contentArray[0].length;
+             xDefWidth =
+                 d3.scale.linear()
+                 .domain([0,(dx.max- dx.min)/defWidthX])
+                 .range([0, plotArea.width]);             
+         } else {
+             xDefWidth = 
+                 d3.scale.linear() 
+                 .domain([0,(hist.xaxis.last.value- hist.xaxis.first.value)/defWidthX]) 
+                 .range([0, plotArea.width]);
+         }
+     }
+    
+    
+    minVal =  hist.values.min
+    maxVal =  hist.values.max;
+    if(axisCustomised.x || axisCustomised.y) {
+        maxOfCols = []; minOfCols = [];
+        for(var col = 0; col != contentArray.length; ++col) {
+            
+            maxOfCols.push(d3.max(contentArray[col]));
+            minOfCols.push(d3.min(contentArray[col]));
+        }
+        minVal = d3.min(minOfCols);
+        maxVal = d3.max(maxOfCols);
+    }
+    if(content.dqmInfo.zAxis.max != null || content.dqmInfo.zAxis.min != null ) {
+
+        if(content.dqmInfo.zAxis.max != null && content.dqmInfo.zAxis.min != null ) {
+            if(content.dqmInfo.zAxis.max > content.dqmInfo.zAxis.min) {
+                minVal = content.dqmInfo.zAxis.min;
+                maxVal = content.dqmInfo.zAxis.max;
+            }
+        } else {
+            if(content.dqmInfo.zAxis.max != null) {
+                if(content.dqmInfo.zAxis.max > minVal) {
+                    maxVal = content.dqmInfo.zAxis.max;
+                }
+            }
+            if(content.dqmInfo.zAxis.min != null) {
+                if(content.dqmInfo.zAxis.min < maxVal) {
+                    minVal = content.dqmInfo.zAxis.min;
+                }
+            }
+        }
+    }
+        
+    var range = (maxVal-minVal);
+    z = d3.scale.linear()
+       .domain([minVal, minVal+range/5, minVal+2*range/5, minVal+3*range/5, minVal+4*range/5,  maxVal])
+       .range(["rgb(255,0,255)","rgb(0,0,255)","rgb(0,255,255)", "rgb(0,255,0)","rgb(255,255,0)", "rgb(255,0,0)"])
+       .interpolate(d3.interpolateRgb);    
     
     var rects = svg
       .append("g")
        .attr("id","cells")
+       .attr("width", plotArea.width)
+       .attr("heigth", plotArea.heigth)
        .selectAll(".row")
-       .data(bins.content)
+       .data(contentArray)
        .enter()
       .append("g")
        .attr("id","row")
@@ -502,11 +787,11 @@ function drawTH2bins(hist) {
        .enter()
       .append("rect")
        .attr("id",function(d,i,j) {return "point"+i+j;})
-       .style("fill",function(d,i,j) {if(d==0) {return "rgb(255,255,255)";} else {return z(d);}});
+       .style("fill",function(d,i,j) {if(d==0 || d<minVal) {return "rgb(255,255,255)";} else {if(d>maxVal) {return z(maxVal)} else {return z(d);}}});
     if(bins.widthX)
         rects
          .attr("x",function(d,i,j) {return x(stepsX[i]);})
-         .attr("width",function(d,i,j) {return x(bins.widthX[i]+ hist.xaxis.first.value);})
+         .attr("width",function(d,i,j) {return x(widthX[i]+ dx.min);})
     else 
         rects
          .attr("x",function(d,i,j) {return xDefWidth(i);})
@@ -515,15 +800,16 @@ function drawTH2bins(hist) {
         
     if(bins.widthY)
         rects
-         .attr("y",function(d,i,j) {return y(stepsY[j]);})
-         .attr("height",function(d,j,i) {return y(hist.yaxis.last.value- bins.widthY[j]);})     
+         .attr("y",function(d,i,j) {return y(stepsY[j]+ widthY[j]);})
+         .attr("height",function(d,i,j) {return y(dy.max- widthY[j]);})     
     else
         rects
          .attr("y",function(d,i,j) {return yDefWidth(j);})
-         .attr("height",defRectHeight)      
+         .attr("height",defRectHeight)
 
     var cells = document.getElementById("cells").getBBox();
-    var values = d3.range(hist.values.max, hist.values.min, (hist.values.min-hist.values.max)/200);
+    
+    var values = d3.range(maxVal, minVal, (minVal-maxVal)/200);
     var xx = d3.scale.ordinal()
        .domain(values)
        .rangeBands([0,cells.height],0);
@@ -540,7 +826,7 @@ function drawTH2bins(hist) {
         .style("fill", z)
        
     var zz = d3.scale.linear()
-       .domain([hist.values.max, hist.values.min])
+       .domain([maxVal, minVal])
        .range([0,cells.height]);
     
     var zAxis = d3.svg.axis()

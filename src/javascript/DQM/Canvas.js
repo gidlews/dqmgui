@@ -86,7 +86,8 @@ function layoutimg(img, container, focus, onclick, ref, size, ob,
 	      + xargs;
   var url = imgref + param + sizeparam;
   var jsonplainurl= jsonplainref + param + ";formatted=true";
-//var jsonurl  TODO rendering url for overlay objects 
+  var jsonurl  = jsonref + param;
+  //TODO resonable way of constructing URLs... 
   
   img.setAttribute('alarm', ob.alarm); // attach the alarm property directly to the HTML img tag
   var border = ((ob.alarm && (nrows > 1 || ncols > 1))
@@ -97,13 +98,13 @@ function layoutimg(img, container, focus, onclick, ref, size, ob,
   if (! ob.name && img.src != url) 
   {
     img.src = url;	
-    img.jsonsrc = jsonref;	//jsonref
+    img.jsonsrc = jsonurl;	//jsonref
     img.jsonpuresrc = jsonplainurl;
   }
   else if (img.src != url)
   {
     img.dqmsrc = url;
-    img.jsonsrc = jsonref; //jsonref;
+    img.jsonsrc = jsonurl; //jsonref;
     img.jsonpuresrc = jsonplainurl;
     GUI.ImgLoader.load(n+"."+row+"."+col, img, url, border, _IMG_BORDER_NEW);
     if (img.src.replace(/\?.*/, "?") != imgref)
