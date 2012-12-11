@@ -156,6 +156,8 @@ template <typename T>
 static string errorCodeToJson(const T* const tprof)
 {
   const char* const value = tprof->GetErrorOption();
+  if(value[0] == '\0')
+      return "";
   switch (value[0])
   {
     case 's':
@@ -170,12 +172,27 @@ static string errorCodeToJson(const T* const tprof)
 template <typename T>
 static string optionalNumericValueToJson(const char* const name,
                                          T value,
-                                         T defaultValue = 0,
+                                         bool avoidComma = false)
+{
+//  if(value == defaultValue   // if value is default
+//          || value != value) // or NaN return nothing
+  if(value != value) // or NaN return nothing
+     return "";
+  return StringFormat("%1'%2':%3")
+      .arg(avoidComma ? "" : ",")
+      .arg(name)
+      .arg(value);
+}
+
+template <typename T>
+static string optionalNumericValueToJson(const char* const name,
+                                         T value,
+                                         T defaultValue,
                                          bool avoidComma = false)
 {
   if(value == defaultValue   // if value is default
           || value != value) // or NaN return nothing
-    return "";
+      return "";
   return StringFormat("%1'%2':%3")
       .arg(avoidComma ? "" : ",")
       .arg(name)
