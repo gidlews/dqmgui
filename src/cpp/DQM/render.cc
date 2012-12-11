@@ -1220,8 +1220,8 @@ private:
                   .arg(h2d->GetMinimum())
                   .arg(h2d->GetMaximum())
                   .arg(binsToArray(h2d))
-                  .arg(optionalNumericValueToJson<Double_t>("zMin", h2d->GetZmin()))
-                  .arg(optionalNumericValueToJson<Double_t>("zMax", h2d->GetZmax()))
+                  .arg(optionalNumericValueToJson<Double_t>("zMin", h2d->GetZmin(), 0.0))
+                  .arg(optionalNumericValueToJson<Double_t>("zMax", h2d->GetZmax(), 0.0))
                   .arg(errorCodeToJson<TProfile2D>(h2d));
             }
             else
@@ -1255,8 +1255,8 @@ private:
                   .arg(tprof->GetMinimum())
                   .arg(tprof->GetMaximum())
                   .arg(binsToArray(tprof))
-                  .arg(optionalNumericValueToJson<Double_t>("yMax", tprof->GetYmax()))
-                  .arg(optionalNumericValueToJson<Double_t>("yMin", tprof->GetYmin()))
+                  .arg(optionalNumericValueToJson<Double_t>("yMax", tprof->GetYmax(), 0.0))
+                  .arg(optionalNumericValueToJson<Double_t>("yMin", tprof->GetYmin(), 0.0))
                   .arg(errorCodeToJson<TProfile>(tprof));
             }
             else
