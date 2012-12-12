@@ -115,7 +115,14 @@ function drawHist() {
 	 .style("width", svgBox.width+"px")
      .style("height", svgBox.height+"px")
 
-
+     main.append("text")
+      .attr("id","generatedIn")
+      .text("generated in "+(new Date() - start)+" ms")
+      .attr("x",0)
+      .attr("y",svgHeight - 3)
+      .attr("font-size","7px")
+      .attr("font-family","Arial")
+      .attr("dominant-baseline","auto")//hanging
 //     alert(new Date() - start)
 }
 
