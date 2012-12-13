@@ -380,10 +380,14 @@ function drawAxis(hist) {
              .range([plotArea.height, 0]);
     } 
     if(isTH1(hist.type)) {
-        y= d3.scale.linear()
-         .domain([hist.values.min
-                  ,hist.values.max])
+        if(content.dqmInfo.yAxis.type=="log")
+            y= d3.scale.log();
+        else
+            y= d3.scale.linear();
+        y.domain([hist.values.min
+                 ,hist.values.max]).nice()
          .range([plotArea.height, 0]);
+        
         if(content.dqmInfo.yAxis.min != null || content.dqmInfo.yAxis.max != null) {
             if(content.dqmInfo.yAxis.min == null && content.dqmInfo.yAxis.max != null) {
                 content.dqmInfo.yAxis.min = hist.values.min;
@@ -438,11 +442,14 @@ function drawAxis(hist) {
         y.domain([dy.min,dy.max]);
     }
     if(isTH1(hist.type) && axisCustomised.x && !axisCustomised.y) {
+//        var yDelta = (dy.max - dy.min) * 0.02;
+        dy.min = d3.min(bins.content.slice(dx.minId, dx.maxId));
+        dy.max = d3.max(bins.content.slice(dx.minId, dx.maxId));
         var yDelta = (dy.max - dy.min) * 0.02;
-        dy.min = d3.min(bins.content.slice(dx.minId, dx.maxId)) - yDelta;
-        dy.max = d3.max(bins.content.slice(dx.minId, dx.maxId)) + yDelta;
-        y.domain([dy.min,dy.max]);
+
+        y.domain([dy.min,dy.max]).nice();
     }
+    
     var yAxis = d3.svg.axis()
         .scale(y)
         .orient("left");
@@ -461,7 +468,22 @@ function drawAxis(hist) {
         .append("g")
         .attr("id","yaxisscale")
         .call(yAxis);
-        
+    if(isTH1(hist.type) && content.dqmInfo.yAxis.type == "log") {
+        var logLabel = d3.select("#yaxisscale")
+                .selectAll("text")[0];
+        for(var i = 1; i != logLabel.length; ++i) { //TODO it's not workings :)
+            var firstLabel = logLabel[i-1].getBBox();
+            var secondLabel = logLabel[i].getBBox();
+            if(firstLabel.y + firstLabel.height > secondLabel.y) {
+                d3.select("#yaxisscale")
+                .selectAll("text").each(function(){
+                    if(d3.select(this).text().toString()[0] != "1")
+                        d3.select(this).style("display","none")
+                })
+                break;
+            }
+        }
+    }
     if(isTH2(hist.type) &&  hist.yaxis.labels) {
         var gLabels = d3.select("#yaxisscale")
         d3.select("#yaxisscale")
@@ -579,7 +601,7 @@ function drawTH1bins(hist) {
                 value = dy.max;
                 lineString += y(dy.max) + "M";
             } else 
-                lineString += y(value) + "L";
+                lineString += y(value+0.0001) + "L";
         stepBins.push({
             x: sumX,
             y: value
