@@ -125,7 +125,9 @@ function drawHist() {
       .attr("dominant-baseline","auto")//hanging
 //     alert(new Date() - start)
 }
-
+function isTProfile(type) {
+    return (type == "TProfile")
+}
 function isTH1(type) {
     return (type == "TH1" || type == "TProfile")
 }
@@ -326,7 +328,8 @@ function drawAxis(hist) {
             .attr("text-anchor","middle")//begin
             .attr("dominant-baseline","hanging")//middle
             .attr("x", function(d){return x(d.center);})
-            .attr("y", labelsPosition+5)            
+            .attr("y", labelsPosition+5)
+            .attr("fill",function(d){if(d.center < dx.min || d.center > dx.max) {return "white"} else {return "black"}})
         
         for(var i = 1; i != gLabels.selectAll(".label")[0].length; ++i) {
             var firstLabel = gLabels.selectAll(".label")[0][i-1].getBBox();
@@ -386,23 +389,53 @@ function drawAxis(hist) {
             y= d3.scale.linear();
         y.domain([hist.values.min
                  ,hist.values.max]).nice()
-         .range([plotArea.height, 0]);
-        
-        if(content.dqmInfo.yAxis.min != null || content.dqmInfo.yAxis.max != null) {
-            if(content.dqmInfo.yAxis.min == null && content.dqmInfo.yAxis.max != null) {
-                content.dqmInfo.yAxis.min = hist.values.min;
+         .range([plotArea.height, 0])
+         .clamp(true);
+
+        if(content.dqmInfo.yAxis.type=="log") {
+            var min = hist.values.max;
+            for(var i=0; i!= bins.content.length; ++i) {
+                if(bins.content[i] > 0 && bins.content[i] < min)
+                    min = bins.content[i];
             }
-            if(content.dqmInfo.yAxis.max == null && content.dqmInfo.yAxis.min != null) {
-                content.dqmInfo.yAxis.max = hist.values.max;
+            y.domain([min, hist.values.max])
+        } 
+        if(!isTProfile(hist.type)) {   
+            if(content.dqmInfo.yAxis.min != null || content.dqmInfo.yAxis.max != null) {
+                if(content.dqmInfo.yAxis.min == null && content.dqmInfo.yAxis.max != null) {
+                    content.dqmInfo.yAxis.min = hist.values.min;
+                }
+                if(content.dqmInfo.yAxis.max == null && content.dqmInfo.yAxis.min != null) {
+                    content.dqmInfo.yAxis.max = hist.values.max;
+                }
+            }
+        } else {
+            var contentArray = bins.content,
+                errorArray = bins.error;
+            var maxArray = [], minArray = [];
+            if(axisCustomised.x && !axisCustomised.y) {
+                contentArray = bins.content.slice(dx.minId, dx.maxId);
+                errorArray = bins.error.slice(dx.minId, dx.maxId);
+            }
+            for(var i=0; i!=contentArray.length; ++i) {
+                maxArray.push(contentArray[i]+errorArray[i]);
+                minArray.push(contentArray[i]-errorArray[i])
+            }
+            dy.min = d3.min(minArray);
+            dy.max = d3.max(maxArray);
+            y.domain([dy.min,dy.max]).nice();
+            if(content.dqmInfo.yAxis.min != null || content.dqmInfo.yAxis.max != null) {
+                if(content.dqmInfo.yAxis.min == null && content.dqmInfo.yAxis.max != null) {
+                    content.dqmInfo.yAxis.min = dy.min;
+                }
+                if(content.dqmInfo.yAxis.max == null && content.dqmInfo.yAxis.min != null) {
+                    content.dqmInfo.yAxis.max = dy.max;
+                }
             }
         }
     }
     dy.min = y.domain()[0];
     dy.max = y.domain()[1];
-
-
-    
-//    content.dqmInfo.yAxis.max = 0
     if(content.dqmInfo.yAxis.min != null|| content.dqmInfo.yAxis.max != null) {
         axisCustomised.y = true;
         if(!bins.widthY) {
@@ -441,12 +474,9 @@ function drawAxis(hist) {
         }
         y.domain([dy.min,dy.max]);
     }
-    if(isTH1(hist.type) && axisCustomised.x && !axisCustomised.y) {
-//        var yDelta = (dy.max - dy.min) * 0.02;
+    if(isTH1(hist.type) && !isTProfile(hist.type) && axisCustomised.x && !axisCustomised.y) {
         dy.min = d3.min(bins.content.slice(dx.minId, dx.maxId));
         dy.max = d3.max(bins.content.slice(dx.minId, dx.maxId));
-        var yDelta = (dy.max - dy.min) * 0.02;
-
         y.domain([dy.min,dy.max]).nice();
     }
     
@@ -471,7 +501,7 @@ function drawAxis(hist) {
     if(isTH1(hist.type) && content.dqmInfo.yAxis.type == "log") {
         var logLabel = d3.select("#yaxisscale")
                 .selectAll("text")[0];
-        for(var i = 1; i != logLabel.length; ++i) { //TODO it's not workings :)
+        for(var i = 1; i < logLabel.length; ++i) {
             var firstLabel = logLabel[i-1].getBBox();
             var secondLabel = logLabel[i].getBBox();
             if(firstLabel.y + firstLabel.height > secondLabel.y) {
@@ -568,91 +598,105 @@ function drawAxis(hist) {
         }
     }
 }
-var lineString;
+var errorArray;
 function drawTH1bins(hist) {
     var defWidth;
     if(!bins.width) {
-     defWidth = (hist.xaxis.last.value - hist.xaxis.first.value)/bins.content.length;
+        defWidth = (hist.xaxis.last.value - hist.xaxis.first.value)/bins.content.length;
     }
-    stepBins = [{x:dx.min, y:dy.min}];
-    var sumX = dx.min;
+    stepBins = [];
     var width = bins.width;
     contentArray = bins.content;
-    
-/*    widthY = widthY.slice(dy.minId, dy.maxId);
-    nYbins = contentArray.length    
-*/
+    errorArray = bins.error;
     contentArray = contentArray.slice(dx.minId, dx.maxId);
+    errorArray = errorArray.slice(dx.minId, dx.maxId);
     if(bins.width) {
-
         width = width.slice(dx.minId, dx.maxId);
     }
-//    var sumX = hist.xaxis.first.value;
-    lineString = "M";
+
+    var sumX;
+    if(!bins.width) {
+        sumX = dx.min + defWidth/2;
+    } else {
+        sumX = dx.min + width[0]/2;
+    }
+    
     var stepLabels = [];
+    //limity!!!!!!!!!!!!!!!!!
     for(var i = 0; i!=contentArray.length; ++i) {
         var value = contentArray[i];
-        lineString += x(sumX) + ",";
-        if(contentArray[i] < dy.min) {
-            value = dy.min;
-            lineString += y(dy.min) + "M";
-        } else
-            if(contentArray[i] > dy.max) {
-                value = dy.max;
-                lineString += y(dy.max) + "M";
-            } else 
-                lineString += y(value+0.0001) + "L";
-        stepBins.push({
-            x: sumX,
-            y: value
-        })
+        
+        var tmp = {};
+        tmp.x = sumX;
+        if((content.dqmInfo.yAxis.type=="log" && value <= 0) || (isTProfile(hist.type) && value == 0)) {
+            tmp.y = dy.min;
+        } else {
+            tmp.y = value;    
+        }
+        
+        tmp.error = errorArray[i];
+        if(!bins.width) {
+            tmp.width = defWidth;
+        } else {
+            tmp.width = width[i];
+        }
+        stepBins.push(tmp);
+
         if(bins.width) {
             sumX +=  width[i];
-            if(hist.xaxis.labels)
-                stepLabels.push(sumX);
+    //            if(hist.xaxis.labels)
+    //                stepLabels.push(sumX);
         } else {
             sumX += defWidth;
         }
-        /*if(bins.widthX != null && sumX > dx.max) {
-            stepBins.pop();
-            break;
-        }*/
- /*       if(sumX <= dx.min) {
-            stepBins.pop();
-            continue;
-        }*/
-            
-        stepBins.push({
-            x: sumX,
-            y: value
-        })
-        lineString += x(sumX) +","+y(value) + "L"; 
-/*        if(sumX > dx.max) {
-            break;
-        }*/
+ 
     }
-    lineString = lineString.substring(0,lineString.length -1 )
-    stepBins.push({x:sumX, y:dy.min});
-    
-
-    
     var binsTable;
-    var line = d3.svg.line()
-        .x(function(d,i) { return x(d.x); })
-        .y(function(d) { return y(d.y+0.000001); });
-    var area = d3.svg.area()
-        .x(line.x())
-        .y1(line.y())
-        .y0(y(dy.min));
     var cells = svg 
         .append("g")
          .style("width", plotArea.width)
          .style("heigth", plotArea.heigth)
          
-//    cells.datum(stepBins);
-         cells.append("path")
-         .attr("class", "line")
-         .attr("d", lineString);
+   
+    cells.selectAll(".bin").data(stepBins).enter().append("line")
+     .attr("class","bin")
+     .attr("x1",function(d) {return x(d.x-d.width/2)})
+     .attr("x2",function(d) {return x(d.x+d.width/2)})
+     .attr("y1",function(d) {return y(d.y)})
+     .attr("y2",function(d) {return y(d.y)})
+     .attr("stroke",function(d) {if(y(d.y) == y(y.domain()[0]) || y(d.y) == y(y.domain()[1]) ) {return "white"} else {return "black"}})
+     
+    if(isTProfile(hist.type)) 
+        cells.selectAll(".error").data(stepBins).enter().append("line")
+         .attr("class","error")
+         .attr("x1",function(d) {return x(d.x)})
+         .attr("x2",function(d) {return x(d.x)})
+         .attr("y1",function(d) {return y(d.y-d.error)})
+         .attr("y2",function(d) {return y(d.y+d.error)})
+         .attr("stroke","black")
+     else {
+         var lastVal = dy.min;
+         for(var i=0; i!=stepBins.length; ++i) {
+             var d = stepBins[i];
+             cells.append("line")
+             .attr("class","vertical")
+             .attr("x1",x(d.x-d.width/2))
+             .attr("x2",x(d.x-d.width/2))
+             .attr("y1",y(lastVal))
+             .attr("y2",y(d.y))
+             .attr("stroke","black")
+             lastVal = d.y;
+         }
+         var d = stepBins[stepBins.length-1];
+         cells.append("line")
+         .attr("class","vertical")
+         .attr("x1",x(d.x+d.width/2))
+         .attr("x2",x(d.x+d.width/2))
+         .attr("y1",y(lastVal))
+         .attr("y2",y(dy.min))
+         .attr("stroke","black")
+
+     }
 /*    cells.append("path")
         .attr("class", "area")
         .attr("d", area);
