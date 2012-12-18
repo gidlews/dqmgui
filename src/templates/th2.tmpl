@@ -76,7 +76,7 @@ function drawHist() {
  
     dx.minId = 0;
     dx.maxId = json.hist.xaxis.last.id; 
-    if(json.hist.yaxis) {
+    if(json.hist.yaxis && json.hist.yaxis.last) {
         dy.minId = 0;
         dy.maxId = json.hist.yaxis.last.id;
     }
@@ -306,13 +306,18 @@ function drawAxis(hist) {
         xAxis.tickFormat(d3.format("s"));
     }
     
-    svg.append("g")
+    var xAxisArea =
+       svg.append("g")
         .attr("class", "x axis")
-        .attr("transform", "translate(0," + (plotArea.height +1)+ ")")
-        .attr("id","xaxis")
-        .append("g")
-        .attr("id","xaxisscale")
-        .call(xAxis);
+        .attr("id","xaxis");
+    xAxisArea
+     .append("g")
+     .attr("id","xaxisscale")
+     .call(xAxis);
+    if(isTH1(hist.type)) 
+        xAxisArea.attr("transform", "translate(0," + (plotArea.height)+ ")")
+    else
+        xAxisArea.attr("transform", "translate(0," + (plotArea.height +1)+ ")")
     if(hist.xaxis.labels) {
         var gLabels = d3.select("#xaxisscale")
         var oldLabel = d3.select("#xaxisscale").select("text");
@@ -388,7 +393,7 @@ function drawAxis(hist) {
         else
             y= d3.scale.linear();
         y.domain([hist.values.min
-                 ,hist.values.max]).nice()
+                 ,hist.values.max])
          .range([plotArea.height, 0])
          .clamp(true);
 
@@ -479,25 +484,28 @@ function drawAxis(hist) {
         dy.max = d3.max(bins.content.slice(dx.minId, dx.maxId));
         y.domain([dy.min,dy.max]).nice();
     }
-    
+    if(isTH1(hist.type))
+        y.nice()
     var yAxis = d3.svg.axis()
         .scale(y)
         .orient("left");
     if(isTH2(hist.type)  && dy.maxId - dy.minId < 10)
         yAxis.ticks(dy.maxId - dy.minId + 1)
-    if((isTH2(hist.type)) && hist.yaxis.labels) {
+    if(isTH2(hist.type) && hist.yaxis.labels) {
         yAxis.ticks(dy.maxId - dy.minId); 
     } else {
         yAxis.tickFormat(d3.format("s"));
     }
        
-    svg.append("g")
+    var yAxisArea = svg.append("g")
         .attr("class", "y axis")
         .attr("id","yaxis")
-        .attr("transform", "translate(-1,0)")
-        .append("g")
-        .attr("id","yaxisscale")
-        .call(yAxis);
+    yAxisArea
+    .append("g")
+    .attr("id","yaxisscale")
+    .call(yAxis);
+    if(isTH2(hist.type))
+        yAxisArea.attr("transform", "translate(-1,0)")
     if(isTH1(hist.type) && content.dqmInfo.yAxis.type == "log") {
         var logLabel = d3.select("#yaxisscale")
                 .selectAll("text")[0];
@@ -629,7 +637,7 @@ function drawTH1bins(hist) {
         var tmp = {};
         tmp.x = sumX;
         if((content.dqmInfo.yAxis.type=="log" && value <= 0) || (isTProfile(hist.type) && value == 0)) {
-            tmp.y = dy.min;
+            tmp.y = y.domain[0];
         } else {
             tmp.y = value;    
         }
@@ -643,7 +651,9 @@ function drawTH1bins(hist) {
         stepBins.push(tmp);
 
         if(bins.width) {
-            sumX +=  width[i];
+            sumX +=  width[i]/2
+            if(i!=contentArray.length-1)
+                sumX +=  width[i+1]/2;
     //            if(hist.xaxis.labels)
     //                stepLabels.push(sumX);
         } else {
@@ -664,7 +674,7 @@ function drawTH1bins(hist) {
      .attr("x2",function(d) {return x(d.x+d.width/2)})
      .attr("y1",function(d) {return y(d.y)})
      .attr("y2",function(d) {return y(d.y)})
-     .attr("stroke",function(d) {if(y(d.y) == y(y.domain()[0]) || y(d.y) == y(y.domain()[1]) ) {return "white"} else {return "black"}})
+     .attr("stroke",function(d) {if(y(d.y) == y(y.domain()[0]) || y(d.y) == y(y.domain()[1]) ) {return "none"} else {return "black"}})
      
     if(isTProfile(hist.type)) 
         cells.selectAll(".error").data(stepBins).enter().append("line")
@@ -675,7 +685,7 @@ function drawTH1bins(hist) {
          .attr("y2",function(d) {return y(d.y+d.error)})
          .attr("stroke","black")
      else {
-         var lastVal = dy.min;
+         var lastVal = y.domain()[0];
          for(var i=0; i!=stepBins.length; ++i) {
              var d = stepBins[i];
              cells.append("line")
@@ -693,7 +703,7 @@ function drawTH1bins(hist) {
          .attr("x1",x(d.x+d.width/2))
          .attr("x2",x(d.x+d.width/2))
          .attr("y1",y(lastVal))
-         .attr("y2",y(dy.min))
+         .attr("y2",y(y.domain()[0]))
          .attr("stroke","black")
 
      }
@@ -707,16 +717,17 @@ function drawTH1bins(hist) {
 }
 var stepsX, stepsY, contentArray,widthX, widthY ; 
 var minVal, maxVal, z, maxOfCols , minOfCols;
+var defWidthX, defWidthY,         defRectWidth, defRectHeight,
+yDefWidth,xDefWidth;
 function drawTH2bins(hist) {
 
     contentArray = bins.content;
     widthX = hist.bins.widthX;
     widthY = hist.bins.widthY;
     stepsX=[dx.min]; stepsY=[dy.min];   
-     var   defWidthX, defWidthY,
-        sumX = hist.xaxis.first.value, sumY = hist.yaxis.first.value,
-        defRectWidth, defRectHeight,
-        yDefWidth,xDefWidth;
+     var  
+        sumX = hist.xaxis.first.value, sumY = hist.yaxis.first.value;
+
 //     alert("x"+dx.minId+", "+dx.maxId)
 //     alert("y"+dy.minId+", "+dy.maxId)
      
@@ -745,6 +756,7 @@ function drawTH2bins(hist) {
     } else {
         defWidthY = (hist.yaxis.last.value - hist.yaxis.first.value)/nYbins;
         defRectHeight = y(hist.yaxis.first.value)-y(hist.yaxis.first.value+defWidthY);
+//        alert(defRectHeight+" = "+(y(hist.yaxis.first.value)-y(hist.yaxis.first.value+defWidthY)))
         if(axisCustomised.y) {
             var yMinId = (dy.min - hist.yaxis.first.value)/defWidthY;
             var yMaxId = (dy.max - hist.yaxis.first.value)/defWidthY;
@@ -874,58 +886,59 @@ function drawTH2bins(hist) {
     if(bins.widthY)
         rects
          .attr("y",function(d,i,j) {return y(stepsY[j]+ widthY[j]);})
-         .attr("height",function(d,i,j) {return y(dy.max- widthY[j]);})     
+         .attr("height",function(d,i,j) {return y(dy.max- widthY[j]);})
     else
         rects
          .attr("y",function(d,i,j) {return yDefWidth(j);})
          .attr("height",defRectHeight)
 
     var cells = document.getElementById("cells").getBBox();
-    
-    var values = d3.range(maxVal, minVal, (minVal-maxVal)/200);
-    var xx = d3.scale.ordinal()
-       .domain(values)
-       .rangeBands([0,cells.height],0);
-    
-    svg.append("g")
-     .attr("id","zaxis")
-     .selectAll("rect")
-       .data(values)
-     .enter().append("rect")
-        .attr("x", cells.x + cells.width + 1)
-        .attr("y", xx)
-        .attr("height", xx.rangeBand())
-        .attr("width", plotArea.margin.right * 0.3)
-        .style("fill", z)
-       
-    var zz = d3.scale.linear()
-       .domain([maxVal, minVal])
-       .range([0,cells.height]);
-    
-    var zAxis = d3.svg.axis()
-        .scale(zz)
-        .tickSize(10)
-        .orient("right")
-        .tickFormat(d3.format("s"));
-    var zAxisBox = document.getElementById("zaxis").getBBox();
-    
-    d3.select("#zaxis").append("g")
-        .attr("class", "z axis")
-        .attr("transform", "translate("+(zAxisBox.x+zAxisBox.width)+",0)")
-        .attr("id","zaxis")
-        .call(zAxis);
-    
-    var zTitleSize = 1.5;
-    var zLabelSize = 10;
-    var zTicksLane = 10;
-    var i;
-    for (i = 0; i<5 && document.getElementById("zaxis").getBBox().width > plotArea.margin.right; ++i) {
-            zLabelSize--;
-            d3.select("#zaxis").selectAll("text")
-              .style("font-size", zLabelSize+"px")
-              .attr("x",zLabelSize+3);
-            d3.select("#zaxis").selectAll(".tick")
-              .attr("x2",zLabelSize)
+    if(maxVal != minVal) {
+        var values = d3.range(maxVal, minVal, (minVal-maxVal)/200);
+        var xx = d3.scale.ordinal()
+           .domain(values)
+           .rangeBands([0,cells.height],0);
+        
+        svg.append("g")
+         .attr("id","zaxis")
+         .selectAll("rect")
+           .data(values)
+         .enter().append("rect")
+            .attr("x", cells.x + cells.width + 1)
+            .attr("y", xx)
+            .attr("height", xx.rangeBand())
+            .attr("width", plotArea.margin.right * 0.3)
+            .style("fill", z)
+           
+        var zz = d3.scale.linear()
+           .domain([maxVal, minVal])
+           .range([0,cells.height]);
+        
+        var zAxis = d3.svg.axis()
+            .scale(zz)
+            .tickSize(10)
+            .orient("right")
+            .tickFormat(d3.format("s"));
+        var zAxisBox = document.getElementById("zaxis").getBBox();
+        
+        d3.select("#zaxis").append("g")
+            .attr("class", "z axis")
+            .attr("transform", "translate("+(zAxisBox.x+zAxisBox.width)+",0)")
+            .attr("id","zaxis")
+            .call(zAxis);
+        
+        var zTitleSize = 1.5;
+        var zLabelSize = 10;
+        var zTicksLane = 10;
+        var i;
+        for (i = 0; i<5 && document.getElementById("zaxis").getBBox().width > plotArea.margin.right; ++i) {
+                zLabelSize--;
+                d3.select("#zaxis").selectAll("text")
+                  .style("font-size", zLabelSize+"px")
+                  .attr("x",zLabelSize+3);
+                d3.select("#zaxis").selectAll(".tick")
+                  .attr("x2",zLabelSize)
+        }
     }
 }
 
