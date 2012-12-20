@@ -1179,6 +1179,7 @@ private:
   void getJson(VisDQMImgInfo &info, VisDQMObject *objs, size_t numobjs, DataBlob &jsondata)
   {
     std::string json ="";
+    VisDQMObject &o = objs[0];
     for(int i=0; i!=numobjs; ++i) {
         TObject *ob = objs[i].object;
 //        std::string json ="";
@@ -1281,9 +1282,10 @@ private:
            json += StringFormat("{'hist': 'unsupported type %1'},").arg(ob->Class_Name());
         }
     }
-    json = StringFormat("{%1,'dqmInfo':{%2}}")
+    json = StringFormat("{%1,'dqmInfo':{%2}, 'normalize': '%3'}")
                 .arg(arrayToJson(json, "list"))
-                .arg(dqmInfoToJson(info));
+                .arg(dqmInfoToJson(info))
+                .arg(( o.flags ? "yes" : "no"));
     replacePseudoNumericValues(json);
     boost::replace_all(json, "'","\"");
 
@@ -1379,7 +1381,6 @@ private:
           }
         }
       }
-
       // Actually draw something.  If there's no object, inform user.
       double xmin = NAN, xmax = NAN;
       double ymin = NAN, ymax = NAN;
@@ -1575,6 +1576,33 @@ private:
             else if (TH1D *th1d = dynamic_cast<TH1D *>(ob))
               norm = th1d->GetSumOfWeights();
 
+
+
+
+
+
+            if(!o.flags){
+                  TText *t2 = new TText(.5, .42, "NOOOOOOOOO!!!");
+                  Color_t c = TColor::GetColor(32, 132, 32);
+                  t2->SetNDC(kTRUE);
+                  t2->SetTextSize(0.10);
+                  t2->SetTextAlign(22);
+                  t2->SetTextColor(c);
+                  t2->Draw();
+              } else {
+                  TText *t2 = new TText(.5, .42, "JUP!!!");
+                  Color_t c = TColor::GetColor(132, 132, 0  );
+                  t2->SetNDC(kTRUE);
+                  t2->SetTextSize(0.10);
+                  t2->SetTextAlign(22);
+                  t2->SetTextColor(c);
+                  t2->Draw();
+              }
+
+
+
+
+
 	    TH1 *ref = (ref1f
 			? static_cast<TH1 *>(ref1f)
 			: static_cast<TH1 *>(ref1d));
@@ -1670,7 +1698,6 @@ private:
       timer.it_interval.tv_sec = 0;
       timer.it_interval.tv_usec = 0;
       setitimer(ITIMER_VIRTUAL, &timer, 0);
-
       // Indicate whether it was blacklisted.
       return ri.blacklisted;
     }
