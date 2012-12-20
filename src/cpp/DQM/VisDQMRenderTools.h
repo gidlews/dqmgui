@@ -324,7 +324,7 @@ static string statWithErrorToJson(const TH2* const hist, const char* const name)
         .arg(hist->GetSkewness(X_ERROR))
         .arg(hist->GetSkewness(Y))
         .arg(hist->GetSkewness(Y_ERROR));
-  return StringFormat("'%1':'has not been recognised'")
+  return StringFormat("'%1':'has not been recognized'")
       .arg(name);
 }
 
@@ -337,13 +337,15 @@ static string statsToJson(const TH1* const hist)
                          ",'mean':{%3}"
                          ",'rms':{%4}"
                          ",'underflow':%5"
-                         ",'overflow':%6")
+                         ",'overflow':%6"
+                         ",'sumOfWeights':%7")
       .arg(hist->GetName())
       .arg(hist->GetEntries(),0,'f')
       .arg(statWithErrorToJson(hist, "mean"))
       .arg(statWithErrorToJson(hist, "rms"))
       .arg(hist->GetBinContent(0))
-      .arg(hist->GetBinContent(hist->GetXaxis()->GetLast() + 1));
+      .arg(hist->GetBinContent(hist->GetXaxis()->GetLast() + 1))
+      .arg(hist->GetSumOfWeights());
   return result;
 }
 
