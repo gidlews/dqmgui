@@ -104,7 +104,16 @@ function drawHist() {
 	    drawTH2bins(json.hist);
 	} else {
 	    drawTH1bins(json.hist);
+	    if(content.list.length > 1) {
+	        for(var i=1; i < content.list.length; ++i) {
+	            var overlayHist = content.list[i].hist;
+	            if(overlayHist.values.min != 0 || overlayHist.values.max != 0)
+	                drawOverlay(json.hist, overlayHist, i, true)
+	        }
+	    } 
 	}
+	
+
 	
 	drawStats(json.hist);
 
@@ -605,6 +614,70 @@ function drawAxis(hist) {
             }
         }
     }
+}
+function colorOfNo(no) {
+    switch(no) {
+    case 1: return "blue"
+    case 2: return "orange"
+    case 3: return "red"
+    case 4: return "violet"
+    }
+}
+var errorArray2;
+function drawOverlay(original, overlay, no, normalized) {
+    if(normalized) {
+        var ratio = original.stats.sumOfWeights / overlay.stats.sumOfWeights;
+        var contentArray = overlay.bins.content.slice(dx.minId, dx.maxId);
+        var errorArray = overlay.bins.error.slice(dx.minId, dx.maxId);
+        errorArray2 = errorArray
+        var plotArea = svg.append("g").attr("id","overlay "+ no);
+        plotArea.selectAll(".point").data(stepBins).enter().append("circle")
+        .attr("class","point")
+        .attr("cx",function(d) {return x(d.x)})
+        .attr("cy",function(d,i) {return y(contentArray[i] * ratio) })
+        .attr("r",4)
+        .attr("id",function(d,i) {return i})    
+        .attr("fill",function(d,i) {if(y(contentArray[i] * ratio) == y.range()[0] || y(contentArray[i] * ratio) == y.range()[1]) {return "none"} else {return colorOfNo(no)};});
+
+        
+        plotArea.selectAll(".error").data(stepBins).enter().append("line")
+        .attr("class","error")
+        .attr("x1",function(d) {return x(d.x)})
+        .attr("x2",function(d) {return x(d.x)})
+        .attr("y1",function(d,i) {return y(((contentArray[i] -errorArray[i])* ratio)) })
+        .attr("y2",function(d,i) {return y(((contentArray[i] +errorArray[i])* ratio)) })
+//        .attr("y1",function(d,i) {return y(((contentArray[i] -d.error)* ratio)) })
+//        .attr("y2",function(d,i) {return y(((contentArray[i] +d.error)* ratio)) })
+//        .attr("y1",function(d,i) {return y((contentArray[i] * ratio)-d.error) })
+//        .attr("y2",function(d,i) {return y((contentArray[i] * ratio)+d.error) })
+        .attr("stroke",colorOfNo(no));
+        
+        plotArea.selectAll(".errorTop").data(stepBins).enter().append("line")
+        .attr("class","errorTop")
+        .attr("x1",function(d) {return x(d.x)-2})
+        .attr("x2",function(d) {return x(d.x)+2})
+        .attr("y1",function(d,i) {return y(((contentArray[i] +errorArray[i])* ratio)) })
+        .attr("y2",function(d,i) {return y(((contentArray[i] +errorArray[i])* ratio)) })
+//        .attr("y1",function(d,i) {return y(((contentArray[i] +d.error)* ratio)) })
+//        .attr("y2",function(d,i) {return y(((contentArray[i] +d.error)* ratio)) })
+//        .attr("y1",function(d,i) {return y((contentArray[i] * ratio)+d.error) })
+//        .attr("y2",function(d,i) {return y((contentArray[i] * ratio)+d.error) })
+        .attr("stroke",function(d,i) {if(errorArray[i] == 0 || y((contentArray[i] * ratio)+errorArray[i]) == y.range()[0]) {return "none"} else {return colorOfNo(no)};});
+        
+        plotArea.selectAll(".errorBottom").data(stepBins).enter().append("line")
+        .attr("class","errorBottom")
+        .attr("x1",function(d) {return x(d.x)-2})
+        .attr("x2",function(d) {return x(d.x)+2})
+        .attr("y1",function(d,i) {return y(((contentArray[i] -errorArray[i])* ratio)) })
+        .attr("y2",function(d,i) {return y(((contentArray[i] -errorArray[i])* ratio)) })       
+//        .attr("y1",function(d,i) {return y(((contentArray[i] -d.error)* ratio)) })
+//        .attr("y2",function(d,i) {return y(((contentArray[i] -d.error)* ratio)) })       
+//        .attr("y1",function(d,i) {return y((contentArray[i] * ratio)-d.error) })
+//        .attr("y2",function(d,i) {return y((contentArray[i] * ratio)-d.error) })
+        .attr("id",function(d,i) {return i})
+        .attr("stroke",function(d,i) {if(errorArray[i] == 0 || y((contentArray[i] * ratio)-errorArray[i]) == y.range()[1]) {return "none"} else {return colorOfNo(no)};});
+        
+    } //to do else
 }
 var errorArray;
 function drawTH1bins(hist) {
