@@ -1581,17 +1581,19 @@ private:
 
 
 
-            if(!o.flags){
+            if(norm && !(o.flags & VisDQMIndex::SUMMARY_PROP_EFFICIENCY_PLOT)){
+
+                TText *t2 = new TText(.5, .42, "JUP!!!");
+                Color_t c = TColor::GetColor(132, 132, 0  );
+                t2->SetNDC(kTRUE);
+                t2->SetTextSize(0.10);
+                t2->SetTextAlign(22);
+                t2->SetTextColor(c);
+                t2->Draw();
+
+              } else {
                   TText *t2 = new TText(.5, .42, "NOOOOOOOOO!!!");
                   Color_t c = TColor::GetColor(32, 132, 32);
-                  t2->SetNDC(kTRUE);
-                  t2->SetTextSize(0.10);
-                  t2->SetTextAlign(22);
-                  t2->SetTextColor(c);
-                  t2->Draw();
-              } else {
-                  TText *t2 = new TText(.5, .42, "JUP!!!");
-                  Color_t c = TColor::GetColor(132, 132, 0  );
                   t2->SetNDC(kTRUE);
                   t2->SetTextSize(0.10);
                   t2->SetTextAlign(22);

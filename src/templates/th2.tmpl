@@ -626,7 +626,8 @@ function colorOfNo(no) {
 var errorArray2;
 function drawOverlay(original, overlay, no, normalized) {
     if(normalized) {
-        var ratio = original.stats.sumOfWeights / overlay.stats.sumOfWeights;
+//        var ratio = original.stats.sumOfWeights / overlay.stats.sumOfWeights;
+        var ratio = 1
         var contentArray = overlay.bins.content.slice(dx.minId, dx.maxId);
         var errorArray = overlay.bins.error.slice(dx.minId, dx.maxId);
         errorArray2 = errorArray
@@ -662,7 +663,7 @@ function drawOverlay(original, overlay, no, normalized) {
 //        .attr("y2",function(d,i) {return y(((contentArray[i] +d.error)* ratio)) })
 //        .attr("y1",function(d,i) {return y((contentArray[i] * ratio)+d.error) })
 //        .attr("y2",function(d,i) {return y((contentArray[i] * ratio)+d.error) })
-        .attr("stroke",function(d,i) {if(errorArray[i] == 0 || y((contentArray[i] * ratio)+errorArray[i]) == y.range()[0]) {return "none"} else {return colorOfNo(no)};});
+        .attr("stroke",function(d,i) {if(errorArray[i] == 0 || y(((contentArray[i] +errorArray[i])* ratio)) == y.range()[1]) {return "none"} else {return colorOfNo(no)};});
         
         plotArea.selectAll(".errorBottom").data(stepBins).enter().append("line")
         .attr("class","errorBottom")
@@ -675,9 +676,11 @@ function drawOverlay(original, overlay, no, normalized) {
 //        .attr("y1",function(d,i) {return y((contentArray[i] * ratio)-d.error) })
 //        .attr("y2",function(d,i) {return y((contentArray[i] * ratio)-d.error) })
         .attr("id",function(d,i) {return i})
-        .attr("stroke",function(d,i) {if(errorArray[i] == 0 || y((contentArray[i] * ratio)-errorArray[i]) == y.range()[1]) {return "none"} else {return colorOfNo(no)};});
+        .attr("stroke",function(d,i) {if(errorArray[i] == 0 || y(((contentArray[i] -errorArray[i])* ratio)) == y.range()[0]) {return "none"} else {return colorOfNo(no)};});
         
-    } //to do else
+    } else {
+        
+    }
 }
 var errorArray;
 function drawTH1bins(hist) {
