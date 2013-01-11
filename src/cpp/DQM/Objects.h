@@ -65,6 +65,7 @@ struct VisDQMImgInfo
   int			height;
   int			showstats;
   int			showerrbars;
+  int           normalized;
   double                ktest;
   VisDQMAxisInfo	xaxis;
   VisDQMAxisInfo	yaxis;

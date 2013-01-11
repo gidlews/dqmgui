@@ -85,10 +85,9 @@ function layoutimg(img, container, focus, onclick, ref, size, ob,
 	      + (ref != "object" ? ";ref=" + ref : "")
 	      + xargs;
   var url = imgref + param + sizeparam;
-  var jsonplainurl= jsonplainref + param + ";formatted=true";
-  var jsonurl  = jsonref + param;
+  var jsonplainurl= jsonplainref + param + ";formatted=true;norm=1";
+  var jsonurl  = jsonref + param+";norm=1";
   //TODO resonable way of constructing URLs... 
-  
   img.setAttribute('alarm', ob.alarm); // attach the alarm property directly to the HTML img tag
   var border = ((ob.alarm && (nrows > 1 || ncols > 1))
                 ? (focus && ob.name == focus ? _IMG_BORDER_ALARM_SELECTED :_IMG_BORDER_ALARM)

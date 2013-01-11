@@ -302,7 +302,7 @@ parseImageSpec(VisDQMImgInfo &i, const std::string &spec, const char *&error, co
   i.xaxis.type = i.yaxis.type = i.zaxis.type = "def";
   i.xaxis.min  = i.yaxis.min  = i.zaxis.min  = NAN;
   i.xaxis.max  = i.yaxis.max  = i.zaxis.max  = NAN;
-
+  i.normalized = 0;
   const char *p = spec.c_str();
   while (*p)
   {
@@ -317,6 +317,7 @@ parseImageSpec(VisDQMImgInfo &i, const std::string &spec, const char *&error, co
 	&& ! parseReference (p, "ref=",          4, i.reference)
 	&& ! parseInt       (p, "showstats=",   10, i.showstats)
 	&& ! parseInt       (p, "showerrbars=", 12, i.showerrbars)
+	&& ! parseInt       (p, "norm=",         5, i.normalized)
 	&& ! parseStripChart(p, "trend=",        6, i.trend)
 	&& ! parseDouble    (p, "xmin=",         5, i.xaxis.min)
 	&& ! parseDouble    (p, "xmax=",         5, i.xaxis.max)
@@ -329,7 +330,8 @@ parseImageSpec(VisDQMImgInfo &i, const std::string &spec, const char *&error, co
 	&& ! parseDouble    (p, "ktest=",        6, i.ktest)
 	&& ! parseAxisType  (p, "ztype=",        6, i.zaxis.type)
 	&& ! parseOption    (p, "drawopts=",     9, i.drawOptions))
-      return false;
+        return false;
+
 
     if (*p && *p != ';')
     {
@@ -1178,12 +1180,17 @@ private:
 
   void getJson(VisDQMImgInfo &info, VisDQMObject *objs, size_t numobjs, DataBlob &jsondata)
   {
+    std::string samePlotOptions("same p");
+    if (info.showerrbars)
+        samePlotOptions += " e1 x0";
+    const double norm = (dynamic_cast<const TH1* const>(objs[0].object))->GetSumOfWeights();
     std::string json ="";
+
     VisDQMObject &o = objs[0];
-    for(int i=0; i!=numobjs; ++i) {
+    for(size_t i=0; i!=numobjs; ++i) {
         TObject *ob = objs[i].object;
 //        std::string json ="";
-        if (const TH1* const h = dynamic_cast<const TH1* const>(ob))
+        if (const TH1* const th1 = dynamic_cast<const TH1* const>(ob))
         {
             std::string jsonTemplate =
               "{'hist':"
@@ -1206,36 +1213,36 @@ private:
               "%12"         // errorStyle for TProfile and TProfile2D, empty for the rest
               "} "
               "},";
-          if (const TH2* const h2 = dynamic_cast<const TH2* const>(ob))
+          if (const TH2* const th2 = dynamic_cast<const TH2* const>(ob))
           {
-            if (const TProfile2D* const h2d = dynamic_cast<const TProfile2D* const>(ob))
+            if (const TProfile2D* const tprof2 = dynamic_cast<const TProfile2D* const>(ob))
             {
               json += StringFormat(jsonTemplate)
-                  .arg(h2d->Class_Name())
-                  .arg(optionalTextValueToJson<const char* const>("title", h2d->GetTitle()))
-                  .arg(statsToJson(h2d))
-                  .arg(axisDataToJson(h2d->GetXaxis()))
-                  .arg(axisDataToJson(h2d->GetYaxis()))
-                  .arg(axisDataToJson(h2d->GetZaxis()))
-                  .arg(h2d->GetMinimum())
-                  .arg(h2d->GetMaximum())
-                  .arg(binsToArray(h2d))
-                  .arg(optionalNumericValueToJson<Double_t>("zMin", h2d->GetZmin(), 0.0))
-                  .arg(optionalNumericValueToJson<Double_t>("zMax", h2d->GetZmax(), 0.0))
-                  .arg(errorCodeToJson<TProfile2D>(h2d));
+                  .arg(tprof2->Class_Name())
+                  .arg(optionalTextValueToJson<const char* const>("title", tprof2->GetTitle()))
+                  .arg(statsToJson(tprof2))
+                  .arg(axisDataToJson(tprof2->GetXaxis()))
+                  .arg(axisDataToJson(tprof2->GetYaxis()))
+                  .arg(axisDataToJson(tprof2->GetZaxis()))
+                  .arg(tprof2->GetMinimum())
+                  .arg(tprof2->GetMaximum())
+                  .arg(binsToArray(tprof2))
+                  .arg(optionalNumericValueToJson<Double_t>("zMin", tprof2->GetZmin(), 0.0))
+                  .arg(optionalNumericValueToJson<Double_t>("zMax", tprof2->GetZmax(), 0.0))
+                  .arg(errorCodeToJson<TProfile2D>(tprof2));
             }
             else
             { /*just TH2*/
               json += StringFormat(jsonTemplate)
-                  .arg(h2->Class_Name())
-                  .arg(optionalTextValueToJson<const char* const>("title", h2->GetTitle()))
-                  .arg(statsToJson(h2))
-                  .arg(axisDataToJson(h2->GetXaxis()))
-                  .arg(axisDataToJson(h2->GetYaxis()))
-                  .arg(axisDataToJson(h2->GetZaxis()))
-                  .arg(h2->GetMinimum())
-                  .arg(h2->GetMaximum())
-                  .arg(binsToArray(h2))
+                  .arg(th2->Class_Name())
+                  .arg(optionalTextValueToJson<const char* const>("title", th2->GetTitle()))
+                  .arg(statsToJson(th2))
+                  .arg(axisDataToJson(th2->GetXaxis()))
+                  .arg(axisDataToJson(th2->GetYaxis()))
+                  .arg(axisDataToJson(th2->GetZaxis()))
+                  .arg(th2->GetMinimum())
+                  .arg(th2->GetMaximum())
+                  .arg(binsToArray(th2))
                   .arg("")
                   .arg("")
                   .arg("");
@@ -1243,6 +1250,18 @@ private:
           }
           else
           { /* not TH2 */
+              const TH1* h = th1; //histogram after normalization
+              if(info.normalized && i>0)
+              {
+                  // Check if the original plot has been flagged as an
+                  // efficiency plot at production time: if this is the case,
+                  // then avoid any kind of normalization that introduces
+                  // fake effects.
+                  if (h->GetSumOfWeights() && norm && !(o.flags & VisDQMIndex::SUMMARY_PROP_EFFICIENCY_PLOT))
+                     h= th1->DrawNormalized(samePlotOptions.c_str(), norm);
+
+              }
+
             if (const TProfile* const   tprof = dynamic_cast<const TProfile* const >(ob))
             {
               json += StringFormat(jsonTemplate)
@@ -1254,22 +1273,22 @@ private:
                   .arg("")
                   .arg(tprof->GetMinimum())
                   .arg(tprof->GetMaximum())
-                  .arg(binsToArray(tprof))
+                  .arg(binsToArray(h))
                   .arg(optionalNumericValueToJson<Double_t>("yMax", tprof->GetYmax(), 0.0))
                   .arg(optionalNumericValueToJson<Double_t>("yMin", tprof->GetYmin(), 0.0))
                   .arg(errorCodeToJson<TProfile>(tprof));
             }
             else
             { /*just TH1*/
-              json += StringFormat(jsonTemplate)
+             json += StringFormat(jsonTemplate)
                   .arg(h->Class_Name())
                   .arg(optionalTextValueToJson<const char* const>("title", h->GetTitle()))
-                  .arg(statsToJson(h))
+                  .arg(statsToJson(th1))
                   .arg(axisDataToJson(h->GetXaxis()))
                   .arg(axisDataToJson(h->GetYaxis()))
                   .arg("")
-                  .arg(h->GetMinimum())
-                  .arg(h->GetMaximum())
+                  .arg(th1->GetMinimum())
+                  .arg(th1->GetMaximum())
                   .arg(binsToArray(h))
                   .arg("")
                   .arg("")
@@ -1282,10 +1301,9 @@ private:
            json += StringFormat("{'hist': 'unsupported type %1'},").arg(ob->Class_Name());
         }
     }
-    json = StringFormat("{%1,'dqmInfo':{%2}, 'normalize': '%3'}")
+    json = StringFormat("{%1,'dqmInfo':{%2}}")
                 .arg(arrayToJson(json, "list"))
-                .arg(dqmInfoToJson(info))
-                .arg(( o.flags ? "yes" : "no"));
+                .arg(dqmInfoToJson(info));
     replacePseudoNumericValues(json);
     boost::replace_all(json, "'","\"");
 

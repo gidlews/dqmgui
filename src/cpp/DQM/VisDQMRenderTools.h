@@ -61,7 +61,7 @@ static string binsToArray(const TH1* const h)
   string contentList = "";
   string widthList = "";
   string errorList = "";
-  Double_t sum = 0;
+  string lowEdgeList = "";
   const Double_t defWidth = (h->GetXaxis()->GetXmax()
                              - h->GetXaxis()->GetXmin())/h->GetNbinsX();
   bool isWidthDef = true;
@@ -70,22 +70,23 @@ static string binsToArray(const TH1* const h)
   {
     if(isWidthDef && (h->GetXaxis()->GetBinWidth(i) != defWidth))
       isWidthDef = false;
-    sum += h->GetBinContent(i);
     contentList += StringFormat("%1,")
         .arg(h->GetBinContent(i));
     widthList += StringFormat("%1,")
         .arg(h->GetXaxis()->GetBinWidth(i));
     errorList += StringFormat("%1,")
         .arg(h->GetBinError(i));
+    //TODO: future will show which of width of lowEdge is more useful...
+    lowEdgeList += StringFormat("%1,")
+        .arg(h->GetXaxis()->GetBinLowEdge(i));
   }
-  string integral = StringFormat("'integral':%1").arg(sum);
   contentList = arrayToJson(contentList, "content");
   errorList = arrayToJson(errorList, "error");
   if (isWidthDef)
-    return integral + "," + contentList + ","+ errorList;
+    return contentList + ","+ errorList;
   else
-    return integral + "," + contentList + ","
-        + arrayToJson(widthList, "width")+ ","+ errorList;
+    return contentList + ","
+        + arrayToJson(widthList, "width")+ ","+arrayToJson(lowEdgeList, "lowEdge")+","+ errorList;
 }
 
 static string binsToArray(const TH2* const h)
@@ -338,14 +339,14 @@ static string statsToJson(const TH1* const hist)
                          ",'rms':{%4}"
                          ",'underflow':%5"
                          ",'overflow':%6"
-                         ",'sumOfWeights':%7")
+                         ",'integral':%7")
       .arg(hist->GetName())
       .arg(hist->GetEntries(),0,'f')
       .arg(statWithErrorToJson(hist, "mean"))
       .arg(statWithErrorToJson(hist, "rms"))
       .arg(hist->GetBinContent(0))
       .arg(hist->GetBinContent(hist->GetXaxis()->GetLast() + 1))
-      .arg(hist->GetSumOfWeights());
+      .arg(hist->Integral(hist->GetXaxis()->GetFirst(), hist->GetXaxis()->GetLast()));
   return result;
 }
 

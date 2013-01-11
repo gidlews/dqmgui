@@ -1102,19 +1102,6 @@ function drawStats(hist) {
             }
         }
     }
-    if(isTH1(hist.type)) {
-        statsNames
-        .append("tspan")
-         .attr("dy",15).attr("x",0)
-         .text("integral");
-        
-        statsVals
-        .append("tspan")
-//        .attr("transform","translate("+(statsBoxWidth-2)+","+20+")")
-        .attr("text-anchor","end")
-        .attr("dy",15).attr("x",statsBoxWidth-5)
-        .text(bins.integral);
-    }
     statsBox.attr("display","block")
     var statsNamesBox = document.getElementById("statsNames").getBBox();
     var statsBoxHeight= statsNamesBox.y + statsNamesBox.height+18;
