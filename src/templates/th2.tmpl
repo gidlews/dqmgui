@@ -617,6 +617,7 @@ function drawAxis(hist) {
 }
 function colorOfNo(no) {
     switch(no) {
+    case 0: return "black"
     case 1: return "blue"
     case 2: return "orange"
     case 3: return "red"
@@ -1017,7 +1018,7 @@ function drawTH2bins(hist) {
         }
     }
 }
-
+ ;
 function drawStats(hist) {
     var titleBox = document.getElementById("title").getBBox();  
     var statsBoxWidth = 150, statsBoxHeight = 220; 
@@ -1026,14 +1027,25 @@ function drawStats(hist) {
          .attr("id","statsBox")
          .attr("transform","translate(" + (svgWidth - statsBoxWidth) + "," + plotArea.margin.top + ")")
          .attr("display","none");
-
-    var statsRect = statsBox.append("rect")
-        .attr("width",statsBoxWidth)
-        .attr("height",10)
-        .attr("fill","white")
-        .attr("stroke","black")
-        .attr("stroke-width", 2);
-    
+    var mainHistStats =  
+        statsBox.append("g")
+            .attr("id", "mainHistStats")
+            .attr("transform","translate(0,18)");
+    drawStatsBox(hist, mainHistStats,statsBoxWidth,0)
+    if(isTH1(hist.type)) {
+        var statsBoxSize = document.getElementById("mainHistStats").getBBox();
+        var deltaY = 18;
+        for(var i=1; i < content.list.length; ++i) {
+            deltaY += statsBoxSize.height;
+            var overlayHist = content.list[i].hist;
+            var mainHistStats =  
+                statsBox.append("g")
+                    .attr("id", "histStats"+i)
+                    .attr("transform","translate(0,"+(deltaY)+")");
+            drawStatsBox(overlayHist, mainHistStats,statsBoxWidth,i)
+            statsBoxSize = document.getElementById("histStats"+i).getBBox();
+        }    
+    }
     statsBox.append("text")
         .text("X ")
         .attr("dominant-baseline","hanging")
@@ -1043,15 +1055,28 @@ function drawStats(hist) {
         .attr("transform","translate("+(statsBoxWidth-2)+","+2+")")
         .attr("class","link")
         .on("click",function() {d3.select("#statsBox").attr("display","none")});
-    statsBox.selectAll("tspan")
+
+    
+ 
+}
+
+function drawStatsBox(hist, statsBox, statsBoxWidth, no) {
+    var statsRect = statsBox.append("rect")
+        .attr("width",statsBoxWidth)
+        .attr("height",10)
+        .attr("fill","white")
+        .attr("stroke","black")
+        .attr("stroke-width", 2);
 
     var statsNames = statsBox.append("text")
         .attr("id", "statsNames")
         .attr("font-weight", "bold")
-        .attr("transform","translate("+(2)+","+18+")");
+        .attr("transform","translate("+(2)+","+0+")")
+        .attr("fill",colorOfNo(no));
     var statsVals = statsBox.append("text")
         .attr("id", "statsVals")
-        .attr("transform","translate("+(2)+","+18+")")
+        .attr("fill",colorOfNo(no))
+        .attr("transform","translate("+(2)+","+0+")")
     for(var k in hist.stats) {
         statsNames
         .append("tspan")
@@ -1060,7 +1085,7 @@ function drawStats(hist) {
         if( typeof hist.stats[k] != "object") {
            statsVals
             .append("tspan")
-//            .attr("transform","translate("+(statsBoxWidth-2)+","+20+")")
+    //        .attr("transform","translate("+(statsBoxWidth-2)+","+20+")")
             .attr("text-anchor","end")
             .attr("dy",15).attr("x",statsBoxWidth-5)
             .text(hist.stats[k]);
@@ -1101,8 +1126,28 @@ function drawStats(hist) {
                 }
             }
         }
+        statsNamesBox = document.getElementById(statsBox.attr("id")).getBBox();
+        statsBoxHeight= statsNamesBox.y+statsNamesBox.height;
+
+       
+        var xDelta = 0; 
+        var statsValsBox = document.getElementById("statsVals").getBBox();
+          
+        if(statsNamesBox.x > statsValsBox.x) {
+            xDelta = statsValsBox.x - 30;
+        } else {
+            if(statsNamesBox.x + 30 > statsValsBox.x) {
+                xDelta = (statsNamesBox.x - 30);
+            }
+        }
+        if (xDelta != 0) {
+            statsRect.attr("x", xDelta )
+                     .attr("width", statsBoxWidth + Math.abs(xDelta));
+            statsNames.attr("transform", "translate("+(xDelta + 2)+ ",18)");
+        }
+        statsRect.attr("height", statsBoxHeight+2);
     }
-    statsBox.attr("display","block")
+    
     var statsNamesBox = document.getElementById("statsNames").getBBox();
     var statsBoxHeight= statsNamesBox.y + statsNamesBox.height+18;
     if(isTH2(hist.type)) {
@@ -1113,7 +1158,7 @@ function drawStats(hist) {
         statsNamesBox = document.getElementById("statsNames").getBBox();
         statsBoxHeight= statsNamesBox.y + statsNamesBox.height+18;
         var pos = 0;
-
+    
         var integral = 
                 statsBox
                  .append("g")
@@ -1155,28 +1200,15 @@ function drawStats(hist) {
             pos = -(document.getElementById("integral").getBBox().width+10);
         }
     }
-    
-    statsNamesBox = document.getElementById("statsBox").getBBox();
-    statsBoxHeight= statsNamesBox.y+statsNamesBox.height;
-
-   
-    var xDelta = 0; 
-    var statsValsBox = document.getElementById("statsVals").getBBox();
-    statsBox.attr("display","none")    
-    if(statsNamesBox.x > statsValsBox.x) {
-        xDelta = statsValsBox.x - 30;
-    } else {
-        if(statsNamesBox.x + 30 > statsValsBox.x) {
-            xDelta = (statsNamesBox.x - 30);
-        }
-    }
-    if (xDelta != 0) {
-        statsRect.attr("x", xDelta )
-                 .attr("width", statsBoxWidth + Math.abs(xDelta));
-        statsNames.attr("transform", "translate("+(xDelta + 2)+ ",18)");
-    }
-    statsRect.attr("height", statsBoxHeight+2);
 }
+
+
+
+
+
+
+
+
 
  if(parent && parent.GUI) {
 	 var extWin = parent.GUI.Plugin.DQMCanvas.getJsonWin();
