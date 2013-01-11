@@ -1304,6 +1304,7 @@ static IMGOPT STDIMGOPTS[] = {
   { "ref",	   RX_OPT_REFTYPE },
   { "showstats",   RX_OPT_INT },
   { "showerrbars", RX_OPT_INT },
+  { "norm",    RX_OPT_INT },
   { "xtype",	   RX_OPT_AXISTYPE },
   { "xmin",	   RX_OPT_FLOAT },
   { "xmax",	   RX_OPT_FLOAT },

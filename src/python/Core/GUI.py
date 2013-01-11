@@ -550,7 +550,7 @@ class Server:
         for s in self.sources:
           if getattr(s, 'jsonhook', None) == args[0]:
             data = s.getJson(*args[1:], **kwargs)
-            if kwargs.get('formatted') == 'true':
+            if kwargs.get('formatted') == "1":
               template = self._maybeRefreshFile(self.templates, "json")
               variables = {'TITLE'		 : 'JSON represetation of histogram',
                            'JSON'		 : data};
