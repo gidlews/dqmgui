@@ -3405,7 +3405,7 @@ public:
   virtual const char *
   jsoner(void) const
     {
-      return "underconstruction";
+      return "live";
     }
 
   virtual void
@@ -3429,6 +3429,32 @@ public:
       clearattr(attrs);
       thread_->fetch(path, xstreamers, xobj);
     }
+
+  py::str
+  getJson(const std::string &path,
+          py::dict opts)
+  {
+    VisDQMSample sample(SAMPLE_ANY, -1);
+    std::map<std::string,std::string> options;
+    bool jsonok = false;
+    std::string jsonData;
+    std::string imagetype;
+    std::string streamers;
+    DQMNet::Object obj;
+    copyopts(opts, options);
+
+    {
+      PyReleaseInterpreterLock nogil;
+      getdata(sample, path, streamers, obj);
+      jsonok = link_->prepareJson(jsonData, imagetype, path, options,
+                                  &streamers, &obj, 1, STDIMGOPTS);
+    }
+    if(jsonok) {
+      py::str _str(jsonData);
+      return _str;
+    }
+    return "\"error\":\"JSON preparing process was interrupted.\"";
+  }
 
   py::tuple
   plot(const std::string &path, py::dict opts)
