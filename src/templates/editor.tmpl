@@ -1,0 +1,66 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+ <head>
+    <meta charset="utf-8">
+    <title>CodeMirror: DQM GUI rendering</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+    <script src="https://raw.github.com/gidlews/editor/master/lib/codemirror.js"></script>
+    <script src="https://raw.github.com/gidlews/editor/master/mode/xml/xml.js"></script>
+    <script src="https://raw.github.com/gidlews/editor/master/mode/javascript/javascript.js"></script>
+    <script src="https://raw.github.com/gidlews/editor/master/mode/css/css.js"></script>
+    <script src="https://raw.github.com/gidlews/editor/master/mode/htmlmixed/htmlmixed.js"></script>
+    <link rel=stylesheet href="http://home.elka.pw.edu.pl/~tgidlews/code/codemirror.css">
+     <link rel=stylesheet href="https://raw.github.com/gidlews/editor/master/doc/docs.css"> 
+    <style type=text/css>
+      .CodeMirror {
+        float: left;
+        width: 50%;
+        border: 1px solid black;
+      }
+      iframe {
+        width: 49%;
+        float: left;
+        height: 550px;
+        border: 1px solid black;
+        border-left: 0px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>CodeMirror: DQM GUI rendering</h1>
+    <textarea id=code name=code>
+    </textarea>
+    <iframe id=preview></iframe>
+    <script>
+   
+      var delay;
+      // Initialize CodeMirror editor with a nice html5 canvas demo.
+      var editor = CodeMirror.fromTextArea(document.getElementById('code'), {
+        mode: 'text/html',
+        lineNumbers: true,
+        tabMode: 'indent'
+      });
+      editor.on("change", function() {
+        clearTimeout(delay);
+        delay = setTimeout(updatePreview, 300);
+      });
+      
+      function updatePreview() {
+        var previewFrame = document.getElementById('preview');
+        var preview =  previewFrame.contentDocument ||  previewFrame.contentWindow.document;
+        preview.open();
+        preview.write(editor.getValue());
+        preview.close();
+      }
+      
+      var url = document.URL.replace("edit","plotjson");
+      $.ajax(url,{
+          success: (function(data) {
+              editor.setValue(data)
+              setTimeout(updatePreview, 300);
+          })
+      })
+//      setTimeout(updatePreview, 300);
+    </script>
+  </body>
+</html>
