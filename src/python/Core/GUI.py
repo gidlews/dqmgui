@@ -487,7 +487,7 @@ class Server:
   def yui(self, *args, **kwargs):
     """Access YUI static content."""
     path = "/".join(args)
-    if not re.match(r"^[-a-z_/]+\.(png|gif)$", path):
+    if not re.match(r"^[-a-z_/]+\.(png|gif|js)$", path):
       return self._invalidURL()
     return serve_file(self._yui + '/' + path)
 
@@ -495,7 +495,7 @@ class Server:
   def extjs(self, *args, **kwargs):
     """Access ExtJS static content."""
     path = "/".join(args)
-    if not (self._extjs and re.match(r"^[-a-z_/]+\.(png|gif)$", path)):
+    if not (self._extjs and re.match(r"^[-a-z_/]+\.(png|gif|js)$", path)):
       return self._invalidURL()
     return serve_file(self._extjs + '/' + path)
 
