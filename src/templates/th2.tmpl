@@ -223,7 +223,14 @@ function drawTitleArea(hist) {
         .attr("text-anchor","middle")
         .attr("transform","translate("+statsBoxWidth/2+","+titleHeight/2+")");
 }
-
+function getLowEdge(hist,i) {
+    if(hist.bins.lowEdge) {
+        return hist.bins.lowEdge[i];
+    } else {
+        var defWidthX = (hist.xaxis.last.value - hist.xaxis.first.value)/nXbins;
+        return hist.xaxis.first.value + defWidthX*i; 
+    }
+}
 function drawAxis(hist) {
     //quick fix... remove after changing width -> widthX for TH1 
     if(bins.width)
@@ -258,14 +265,40 @@ function drawAxis(hist) {
                         ,json.hist.values.max ])
                .range([height, 0]);
            } else if (json.hist.yaxis.scale == "lin") {*/
-    x = d3.scale.linear()
-    .domain([ json.hist.xaxis.first.value, 
+    if(content.dqmInfo.xAxis.type=="log")
+        x = d3.scale.log();
+    else
+        x = d3.scale.linear();   
+    x.domain([ json.hist.xaxis.first.value, 
             json.hist.xaxis.last.value])
-      .range([0, plotArea.width]);
-    
+     .range([0, plotArea.width]);
+    var i;
     dx.min = json.hist.xaxis.first.value; 
     dx.max = json.hist.xaxis.last.value;
     dx.minId = 0;
+    if(content.dqmInfo.xAxis.type=="log" && x.domain()[0] <= 0) {
+        for(i=0; i!=nXbins; ++i)
+            if(getLowEdge(hist, i) > 0)
+                break;
+        x.domain([getLowEdge(hist, i), 
+                   json.hist.xaxis.last.value]);
+        dx.min = getLowEdge(hist, i);
+        dx.minId = i;
+        if(content.dqmInfo.xAxis.min != null && content.dqmInfo.xAxis.min < x.domain()[0])
+            content.dqmInfo.xAxis.min = x.domain()[0];
+        else if(content.dqmInfo.xAxis.min == null && content.dqmInfo.xAxis.max != null) {
+            content.dqmInfo.xAxis.min = x.domain()[0];
+        } else if(content.dqmInfo.xAxis.min != null && content.dqmInfo.xAxis.min > 0) {
+            for(i; i!=nXbins; ++i)
+                if(getLowEdge(hist, i) > content.dqmInfo.xAxis.min)
+                    break;
+            x.domain([getLowEdge(hist, i-1), 
+                       json.hist.xaxis.last.value]);
+            dx.min = getLowEdge(hist, i-1);
+            dx.minId = i-1;
+
+        }
+    }
     if(isTH1(json.hist.type))
         dx.maxId = bins.content.length;
     if(isTH2(json.hist.type))
@@ -286,7 +319,7 @@ function drawAxis(hist) {
         } else {
             var sumX = json.hist.xaxis.first.value;
             var i=-1;
-            if(content.dqmInfo.xAxis.min != null && content.dqmInfo.xAxis.min >  json.hist.xaxis.first.value) {
+            if(content.dqmInfo.xAxis.type!="log" && content.dqmInfo.xAxis.min != null && content.dqmInfo.xAxis.min >  json.hist.xaxis.first.value) {
                 if(content.dqmInfo.xAxis.min != null && content.dqmInfo.xAxis.min >  json.hist.xaxis.first.value) {
                     while(sumX <= content.dqmInfo.xAxis.min) //find first bigger then min 
                         sumX += bins.widthX[++i];
@@ -314,6 +347,7 @@ function drawAxis(hist) {
     } else {
         xAxis.tickFormat(d3.format("s"));
     }
+    
     
     var xAxisArea =
        svg.append("g")
@@ -365,6 +399,41 @@ function drawAxis(hist) {
                      d3.select("#xaxis")
                      .attr("transform", "translate(0," + (plotArea.height +1)+ ")")
                  }
+                break;
+            }
+        }
+    } else {
+        var s = d3.format("s");
+        d3.select("#xaxis").selectAll("text")
+        .each(
+            function(d,i) {
+                if(d && d.toString().indexOf(".") != -1 && d.toString().length - d.toString().indexOf(".") > 3) {
+                    d3.select(this)
+                    .text( 
+                        s(d.toFixed(d.toString().length-d.toString().indexOf(".")-2))
+                    )
+                }
+            }
+        )
+        for(var i = 1; i != d3.select("#xaxis").selectAll("text")[0].length-1; ++i) {
+           x1 = d3.select("#xaxis").selectAll("text")[0][i-1];
+           x2 = d3.select("#xaxis").selectAll("text")[0][i];
+           if(!x1 || !x2)
+               break;
+           var matrix1 = x1.getTransformToElement(x1.nearestViewportElement);
+           var matrix2 = x2.getTransformToElement(x2.nearestViewportElement);
+            //p defaults to 0,0
+            var p = x1.nearestViewportElement.createSVGPoint()
+            var sp1 = p.matrixTransform(matrix1);
+            var sp2 = p.matrixTransform(matrix2);
+            if(sp1.x+ x1.getBBox().width>sp2.x) {
+                d3.select("#xaxis").selectAll("text")
+                .attr("text-anchor","start")
+                .attr("dominant-baseline","middle")
+                .attr("transform",function(d,i) {
+                    var width = d3.select("#xaxis").selectAll("text")[0][i].getBBox().height;
+                    return "translate("+width/2+",0) rotate(90 0,"+width/2+")";
+                })
                 break;
             }
         }
@@ -505,7 +574,18 @@ function drawAxis(hist) {
     } else {
         yAxis.tickFormat(d3.format("s"));
     }
-       
+/*    var s = d3.format("s");
+    d3.select("#yaxis").selectAll("text")
+    .each(
+        function(d,i) {
+            if(d && d.toString().indexOf(".") != -1 && d.toString().length - d.toString().indexOf(".") > 3) {
+                d3.select(this)
+                .text( 
+                    s(d.toFixed(d.toString().length-d.toString().indexOf(".")-2))
+                )
+            }
+        }
+    )*/
     var yAxisArea = svg.append("g")
         .attr("class", "y axis")
         .attr("id","yaxis")
@@ -683,7 +763,7 @@ function drawOverlay(original, overlay, no, normalized) {
         
     }
 }
-var errorArray;
+var errorArray,lowEdgeArray;
 function drawTH1bins(hist) {
     var defWidth;
     if(!bins.width) {
@@ -693,6 +773,11 @@ function drawTH1bins(hist) {
     var width = bins.width;
     contentArray = bins.content;
     errorArray = bins.error;
+    if(bins.width) {
+        lowEdgeArray = bins.lowEdge;
+        lowEdgeArray.push(hist.xaxis.last.value)
+        lowEdgeArray =  lowEdgeArray.slice(dx.minId, dx.maxId+1);
+    }   
     contentArray = contentArray.slice(dx.minId, dx.maxId);
     errorArray = errorArray.slice(dx.minId, dx.maxId);
     if(bins.width) {
@@ -712,9 +797,9 @@ function drawTH1bins(hist) {
         var value = contentArray[i];
         
         var tmp = {};
-        tmp.x = sumX;
+        tmp.xOld = sumX;
         if((content.dqmInfo.yAxis.type=="log" && value <= 0) || (isTProfile(hist.type) && value == 0)) {
-            tmp.y = y.domain[0];
+            tmp.y = y.domain()[0];
         } else {
             tmp.y = value;    
         }
@@ -722,8 +807,11 @@ function drawTH1bins(hist) {
         tmp.error = errorArray[i];
         if(!bins.width) {
             tmp.width = defWidth;
+            tmp.x = x.domain()[0] + defWidth*i;
         } else {
-            tmp.width = width[i];
+            tmp.x = lowEdgeArray[i];
+            tmp.width = lowEdgeArray[i+1] - lowEdgeArray[i];
+            tmp.widthOld = width[i];
         }
         stepBins.push(tmp);
 
@@ -747,13 +835,13 @@ function drawTH1bins(hist) {
    
     cells.selectAll(".bin").data(stepBins).enter().append("line")
      .attr("class","bin")
-     .attr("x1",function(d) {return x(d.x-d.width/2)})
-     .attr("x2",function(d) {return x(d.x+d.width/2)})
+     .attr("x1",function(d) {return x(d.x)})
+     .attr("x2",function(d) {return x(d.x + d.width)})
      .attr("y1",function(d) {return y(d.y)})
      .attr("y2",function(d) {return y(d.y)})
      .attr("stroke",function(d) {if(y(d.y) == y(y.domain()[0]) || y(d.y) == y(y.domain()[1]) ) {return "none"} else {return "black"}})
      
-    if(isTProfile(hist.type)) 
+    if(isTProfile(hist.type))
         cells.selectAll(".error").data(stepBins).enter().append("line")
          .attr("class","error")
          .attr("x1",function(d) {return x(d.x)})
@@ -767,8 +855,8 @@ function drawTH1bins(hist) {
              var d = stepBins[i];
              cells.append("line")
              .attr("class","vertical")
-             .attr("x1",x(d.x-d.width/2))
-             .attr("x2",x(d.x-d.width/2))
+             .attr("x1",x(d.x))
+             .attr("x2",x(d.x))
              .attr("y1",y(lastVal))
              .attr("y2",y(d.y))
              .attr("stroke","black")
@@ -777,8 +865,8 @@ function drawTH1bins(hist) {
          var d = stepBins[stepBins.length-1];
          cells.append("line")
          .attr("class","vertical")
-         .attr("x1",x(d.x+d.width/2))
-         .attr("x2",x(d.x+d.width/2))
+         .attr("x1",x(d.x+d.width))
+         .attr("x2",x(d.x+d.width))
          .attr("y1",y(lastVal))
          .attr("y2",y(y.domain()[0]))
          .attr("stroke","black")
