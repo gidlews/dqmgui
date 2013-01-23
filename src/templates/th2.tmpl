@@ -59,6 +59,112 @@ var start = new Date(),
         width : 0,
         height : 0},
     main; 
+Plot = function(hist) {
+    this.type = hist.type;
+    this.x = {
+        min : {
+            id : 0,
+            value: hist.xaxis.first.value
+        },
+        max : {
+            id : hist.xaxis.last.id,
+            value: hist.xaxis.last.value
+        },
+        customised : false,
+        width : false,
+        domain : {
+            min : null,
+            max : null
+        },
+        scale : null
+    }; 
+    this.y = {
+        min : {
+            id : 0,
+            value: hist.yaxis.first.value
+        },
+        max : {
+            id : hist.yaxis.last.id,
+            value: hist.yaxis.last.value
+        },
+        customised : false,
+        width : false,
+        domain : {
+            min : null,
+            max : null
+        },
+        scale : null
+    },
+    this.w = null,
+    this.h = null
+    Bins = function(plot, data) {
+        this.plot = plot;
+        this.defWidthX = null;
+        this.defWidthY = null;
+        this.lowEdgeX = function (i) {
+            if(data)
+                if(data.lowEdgeX)
+                    if(i == this.xLen())
+                        return this.plot.x.max.value;
+                    else
+                        return data.lowEdgeX[this.plot.x.min.id+i];
+                else
+                    return plot.x.min.value + this.defWidthX*(this.plot.x.min.id+i);
+        };
+        this.lowEdgeY = function (i) {
+            if(data && isTH2(plot.type))
+                if(data.lowEdgeY)
+                    if(i == this.yLen())
+                        return this.plot.y.max.value;
+                    else
+                        return data.lowEdgeY[this.plot.y.min.id+i];
+                else
+                    return plot.y.min.value + this.defWidthY*(this.plot.y.min.id+i);
+        };
+        this.widthX = function (i) {
+            if(data)
+                if(data.lowEdgeX)
+                    return this.lowEdgeX(i+1) - this.lowEdgeX(i); 
+                else
+                    return this.defWidthX;
+        };
+        this.widthY = function (i) {
+            if(data && isTH2(plot.type))
+                if(data.lowEdgeY)
+                    return this.lowEdgeY(i+1) - this.lowEdgeY(i); 
+                else
+                    return this.defWidthY;
+        };
+        this.bins = function(i,j) {
+            if(data && isTH1(plot.type))
+                return this.data.content[this.plot.x.min.id+i];
+            if(isTH2(plot.type))
+                return this.data.content[this.plot.y.min.id+j][this.plot.x.min.id+i];
+            return null;
+        };
+        this.xLen = function() {
+            if(isTH1(plot.type))
+                return this.data.content.length;
+            if(isTH2(plot.type))
+                return this.data.content[0].length;
+            return null;
+        };
+        this.yLen = function() {
+            if(isTH2(plot.type))
+                return this.data.content.length;
+            return null;
+        };
+        this.data = data
+        this.tmp = "a";
+    }
+    this.bins = new Bins(this, hist.bins)
+    var defWidthX,defWidthY;
+    if(!hist.bins.lowEdgeX)
+        this.bins.defWidthX = (hist.xaxis.last.value - hist.xaxis.first.value) / this.bins.xLen();   
+    if(isTH2(hist.type) && !hist.bins.lowEdgeY)
+        this.bins.defWidthY = (hist.yaxis.last.value - hist.yaxis.first.value) / this.bins.yLen();
+}
+var plot;
 
 function drawHist() {
     var vertMargin = Math.min(Math.max(svgHeight/10, 40), 60),
@@ -69,7 +175,7 @@ function drawHist() {
         bottom: vertMargin, 
         left: horiMargin
     };
-  
+    plot = new Plot(json.hist);
     main
     .attr("width", svgWidth)
     .attr("height", svgHeight)
