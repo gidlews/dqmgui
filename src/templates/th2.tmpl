@@ -295,7 +295,9 @@ function drawAxis(hist) {
                 content.dqmInfo.yAxis.max = null;
         }
     }
-
+    if(content.dqmInfo.yAxis.max != null || content.dqmInfo.yAxis.min != null) {
+        axisCustomised.y = true;
+    }
     if(content.dqmInfo.xAxis.type=="log")
         x = d3.scale.log();
     else
@@ -576,20 +578,27 @@ function drawAxis(hist) {
                 }
             }
         } else {
-            var contentArray = bins.content,
-                errorArray = bins.error;
-            var maxArray = [], minArray = [];
             if(axisCustomised.x && !axisCustomised.y) {
+                var contentArray = bins.content,
+                    errorArray = bins.error;
+                var maxArray = [], minArray = [];
                 contentArray = bins.content.slice(dx.minId, dx.maxId);
                 errorArray = bins.error.slice(dx.minId, dx.maxId);
+                if(content.dqmInfo.yAxis.type!="log")
+                    for(var i=0; i!=contentArray.length; ++i) {
+                        maxArray.push(contentArray[i]+errorArray[i]);
+                        minArray.push(contentArray[i]-errorArray[i])
+                    }
+                else 
+                    for(var i=0; i!=contentArray.length; ++i) {
+                        maxArray.push(contentArray[i]+errorArray[i]);
+                        if(contentArray[i]-errorArray[i] > 0)
+                            minArray.push(contentArray[i]-errorArray[i])
+                    }
+                dy.min = d3.min(minArray);
+                dy.max = d3.max(maxArray);
+                y.domain([dy.min,dy.max]);
             }
-            for(var i=0; i!=contentArray.length; ++i) {
-                maxArray.push(contentArray[i]+errorArray[i]);
-                minArray.push(contentArray[i]-errorArray[i])
-            }
-            dy.min = d3.min(minArray);
-            dy.max = d3.max(maxArray);
-            y.domain([dy.min,dy.max]).nice();
             if(content.dqmInfo.yAxis.min != null || content.dqmInfo.yAxis.max != null) {
                 if(content.dqmInfo.yAxis.min == null && content.dqmInfo.yAxis.max != null) {
                     content.dqmInfo.yAxis.min = dy.min;
@@ -602,7 +611,7 @@ function drawAxis(hist) {
     }
     dy.min = y.domain()[0];
     dy.max = y.domain()[1];
-    if(content.dqmInfo.yAxis.type!="log" && (content.dqmInfo.yAxis.min != null|| content.dqmInfo.yAxis.max != null)) {
+    if((content.dqmInfo.yAxis.min != null|| content.dqmInfo.yAxis.max != null)) {
         axisCustomised.y = true;
         if(!bins.widthY) {
             if(isTH2(hist.type)) {
@@ -645,8 +654,10 @@ function drawAxis(hist) {
         dy.max = d3.max(bins.content.slice(dx.minId, dx.maxId));
         y.domain([dy.min,dy.max]).nice();
     }
-    if(isTH1(hist.type))
+    if(isTH1(hist.type) && (content.dqmInfo.yAxis.type=="log" && !axisCustomised.y)) {
         y.nice()
+        alert("TAK")
+    }
     var yAxis = d3.svg.axis()
         .scale(y)
         .orient("left");
@@ -679,7 +690,7 @@ function drawAxis(hist) {
     )
     if(isTH2(hist.type))
         yAxisArea.attr("transform", "translate(-1,0)")
-    if(isTH1(hist.type) && content.dqmInfo.yAxis.type == "log") {
+/*    if(isTH1(hist.type) && content.dqmInfo.yAxis.type == "log") {
         var logLabel = d3.select("#yaxisscale")
                 .selectAll("text")[0];
         for(var i = 1; i < logLabel.length; ++i) {
@@ -694,7 +705,7 @@ function drawAxis(hist) {
                 break;
             }
         }
-    }
+    }*/
     if(isTH2(hist.type) &&  hist.yaxis.labels) {
         var gLabels = d3.select("#yaxisscale")
         d3.select("#yaxisscale")
@@ -985,28 +996,13 @@ function drawTH2bins(hist) {
         lowEdgeY.push(hist.yaxis.last.value)        
         lowEdgeY = lowEdgeY.slice(dy.minId, dy.maxId+1);
         nYbins = contentArray.length
-//        var yMinId = 0, yMaxId = nYbins;
         for(var i = 0; i!=nYbins; ++i) {
             sumY +=  widthY[i];
-/*            if(axisCustomised.y && sumY < dy.min) {
-                yMinId = i;
-                continue;
-            }*/
-//            stepsY.push(sumY)
               stepsY.push(lowEdgeY[i])
-/*            if(axisCustomised.y && sumY > dy.max) {
-                yMaxId = i;
-                break;
-            }*/
         }
-//        alert(yMinId  + "  " + yMaxId)
-//        contentArray = contentArray.slice(yMinId, yMaxId);
-//        widthY = widthY.slice(dx.minId, dx.maxId)
-
     } else {
         defWidthY = (hist.yaxis.last.value - hist.yaxis.first.value)/nYbins;
         defRectHeight = y(hist.yaxis.first.value)-y(hist.yaxis.first.value+defWidthY);
-//        alert(defRectHeight+" = "+(y(hist.yaxis.first.value)-y(hist.yaxis.first.value+defWidthY)))
         if(axisCustomised.y) {
             var yMinId = (dy.min - hist.yaxis.first.value)/defWidthY;
             var yMaxId = (dy.max - hist.yaxis.first.value)/defWidthY;
