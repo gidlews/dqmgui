@@ -368,6 +368,23 @@ Plot = function(hist) {
             return plot.y.max.id-plot.y.min.id;
         };
         this.data = data
+        this.widthX = function (i) {
+            if(data)
+                if(data.lowEdgeX)
+                    return this.lowEdgeX(i+1) - this.lowEdgeX(i); 
+                else
+                    return this.defWidthX;
+        };
+        this.lowEdgeX = function (i) {
+            if(data)
+                if(data.lowEdgeX)
+                    if(i == this.xLen())
+                        return this.plot.x.max.value;
+                    else
+                        return data.lowEdgeX[this.plot.x.min.id+i];
+                else
+                    return plot.x.min.value + this.defWidthX*i;
+        };
         if(this.plot.isTH2()) {
             this.binsArray = function() {
                 var slicedContent = [];
@@ -376,16 +393,6 @@ Plot = function(hist) {
                 }
                 return slicedContent;
             }
-            this.lowEdgeX = function (i) {
-                if(data)
-                    if(data.lowEdgeX)
-                        if(i == this.xLen())
-                            return this.plot.x.max.value;
-                        else
-                            return data.lowEdgeX[this.plot.x.min.id+i];
-                    else
-                        return plot.x.min.value + this.defWidthX*i;
-            };
             this.lowEdgeY = function (i) {
                 if(data && this.plot.isTH2())
                     if(data.lowEdgeY)
@@ -396,13 +403,6 @@ Plot = function(hist) {
                     else
                         return plot.y.min.value + this.defWidthY*i;
             };
-            this.widthX = function (i) {
-                if(data)
-                    if(data.lowEdgeX)
-                        return this.lowEdgeX(i+1) - this.lowEdgeX(i); 
-                    else
-                        return this.defWidthX;
-            };
             this.widthY = function (i) {
                 if(data && this.plot.isTH2())
                     if(data.lowEdgeY)
@@ -412,23 +412,6 @@ Plot = function(hist) {
             };
         }
         if(this.plot.isTH1()) {
-            this.lowEdgeX = function (i) {
-                if(data)
-                    if(data.lowEdge)
-                        if(i == this.xLen())
-                            return this.plot.x.max.value;
-                        else
-                            return data.lowEdge[this.plot.x.min.id+i];
-                    else
-                        return plot.x.min.value + this.defWidthX*i;
-            };
-            this.widthX = function (i) {
-                if(data)
-                    if(data.lowEdge)
-                        return this.lowEdgeX(i+1) - this.lowEdgeX(i); 
-                    else
-                        return this.defWidthX;
-            };
             this.binsArray = function() {
                 return this.data.content.slice(plot.x.min.id, plot.x.max.id);
             }
@@ -1216,7 +1199,7 @@ function drawStats(content,plot) {
         statsBox.append("g")
             .attr("id", "mainHistStats")
             .attr("transform","translate(0,18)");
-    drawStatsBox(hist, mainHistStats,statsBoxWidth,0)
+    drawStatsBox(plot, hist, mainHistStats,statsBoxWidth,0)
     if(plot.isTH1()) {
         var statsBoxSize = document.getElementById("mainHistStats").getBBox();
         var deltaY = 18;
@@ -1241,7 +1224,7 @@ function drawStats(content,plot) {
         .attr("class","link")
         .on("click",function() {d3.select("#statsBox").attr("display","none")});
 }
-function drawStatsBox(hist, statsBox, statsBoxWidth, no) {
+function drawStatsBox(plot, hist, statsBox, statsBoxWidth, no) {
     var statsRect = statsBox.append("rect")
         .attr("width",statsBoxWidth)
         .attr("height",10)
