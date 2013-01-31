@@ -86,7 +86,7 @@ static string binsToArray(const TH1* const h)
     return contentList + ","+ errorList;
   else
     return contentList + ","
-        + arrayToJson(widthList, "width")+ ","+arrayToJson(lowEdgeList, "lowEdge")+","+ errorList;
+        + arrayToJson(widthList, "widthX")+ ","+arrayToJson(lowEdgeList, "lowEdgeX")+","+ errorList;
 }
 
 static string binsToArray(const TH2* const h)
