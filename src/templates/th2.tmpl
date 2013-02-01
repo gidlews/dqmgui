@@ -466,19 +466,23 @@ function drawHist(content) {
 	} else {
 	    nXbins = bins.content.length;
 	}*/
-	drawAxis(content, plot);
+	plot.dqm = content.dqmInfo;
+	drawAxis(plot,json.hist);
 	
 	if(plot.isTH2()) {
 	    drawTH2bins(json.hist, plot);
 	} else {
-	    drawTH1bins(json.hist, plot);
+	    var stepBins = drawTH1bins(json.hist, plot);
 	    if(content.list.length > 1) {
 	        for(var i=1; i < content.list.length; ++i) {
 	            var overlayHist = content.list[i].hist;
+	            var overlayPlot = new Plot(content.list[i].hist)
+                overlayPlot.x.scale = plot.x.scale;
+	            overlayPlot.x.setScaleLimit(plot.x.min.id, plot.x.max.id)
 	            if(overlayHist.values.min != 0 || overlayHist.values.max != 0)
-	                drawOverlay(json.hist, overlayHist, i, true)
+	                drawOverlay(plot, overlayPlot, stepBins, i)
 	        }
-	    } 
+	    }
 	}
 	
 	drawStats(content, plot);
@@ -669,180 +673,165 @@ function  organiseYLabels(min) {
 function  organiseZLabels(min) {
     organiseLabels(d3.select("#zaxis"), min);
 }
-function checkDqmLimits(content, plot) {
-    if(content.dqmInfo.xAxis.min != null || content.dqmInfo.xAxis.max != null) {
-        if(content.dqmInfo.xAxis.min < json.hist.xaxis.first.value)
-            content.dqmInfo.xAxis.min = null;
-        if(content.dqmInfo.xAxis.min > json.hist.xaxis.last.value)
-            content.dqmInfo.xAxis.min = null;
-        if(content.dqmInfo.xAxis.max > json.hist.xaxis.last.value)
-            content.dqmInfo.xAxis.max = null;
-        if(content.dqmInfo.xAxis.max < json.hist.xaxis.first.value)
-            content.dqmInfo.xAxis.max = null;
-        if(content.dqmInfo.xAxis.min > content.dqmInfo.xAxis.max) {
-            content.dqmInfo.xAxis.min = null;
-            content.dqmInfo.xAxis.max = null;
+function checkDqmLimits(plot) {
+    if(plot.dqm.xAxis.min != null || plot.dqm.xAxis.max != null) {
+        if(plot.dqm.xAxis.min < json.hist.xaxis.first.value)
+            plot.dqm.xAxis.min = null;
+        if(plot.dqm.xAxis.min > json.hist.xaxis.last.value)
+            plot.dqm.xAxis.min = null;
+        if(plot.dqm.xAxis.max > json.hist.xaxis.last.value)
+            plot.dqm.xAxis.max = null;
+        if(plot.dqm.xAxis.max < json.hist.xaxis.first.value)
+            plot.dqm.xAxis.max = null;
+        if(plot.dqm.xAxis.min > plot.dqm.xAxis.max) {
+            plot.dqm.xAxis.min = null;
+            plot.dqm.xAxis.max = null;
         }
-        if(content.dqmInfo.xAxis.type=="log" && content.dqmInfo.xAxis.max < 0)
-            content.dqmInfo.xAxis.max = null;
+        if(plot.dqm.xAxis.type=="log" && plot.dqm.xAxis.max < 0)
+            plot.dqm.xAxis.max = null;
     }
-    if(content.dqmInfo.yAxis.min != null || content.dqmInfo.yAxis.max != null) {
-        if(content.dqmInfo.yAxis.min > content.dqmInfo.yAxis.max) {
-            content.dqmInfo.yAxis.min = null;
-            content.dqmInfo.yAxis.max = null;
+    if(plot.dqm.yAxis.min != null || plot.dqm.yAxis.max != null) {
+        if(plot.dqm.yAxis.min > plot.dqm.yAxis.max) {
+            plot.dqm.yAxis.min = null;
+            plot.dqm.yAxis.max = null;
         }
         if(plot.isTH2()) {
-            if(content.dqmInfo.yAxis.min < json.hist.yaxis.first.value)
-                content.dqmInfo.yAxis.min = null;
-            if(content.dqmInfo.yAxis.min > json.hist.yaxis.last.value)
-                content.dqmInfo.yAxis.min = null;
-            if(content.dqmInfo.yAxis.max > json.hist.yaxis.last.value)
-                content.dqmInfo.yAxis.max = null;
-            if(content.dqmInfo.yAxis.max < json.hist.yaxis.first.value)
-                content.dqmInfo.yAxis.max = null;
-            if(content.dqmInfo.yAxis.type=="log" && content.dqmInfo.yAxis.max < 0)
-                content.dqmInfo.yAxis.max = null;
+            if(plot.dqm.yAxis.min < json.hist.yaxis.first.value)
+                plot.dqm.yAxis.min = null;
+            if(plot.dqm.yAxis.min > json.hist.yaxis.last.value)
+                plot.dqm.yAxis.min = null;
+            if(plot.dqm.yAxis.max > json.hist.yaxis.last.value)
+                plot.dqm.yAxis.max = null;
+            if(plot.dqm.yAxis.max < json.hist.yaxis.first.value)
+                plot.dqm.yAxis.max = null;
+            if(plot.dqm.yAxis.type=="log" && plot.dqm.yAxis.max < 0)
+                plot.dqm.yAxis.max = null;
         }
     }
-}
-function drawAxis(content , plot) {
-    hist = content.list[0].hist;
-    checkDqmLimits(content, plot);
-    
-    if(content.dqmInfo.yAxis.max != null || content.dqmInfo.yAxis.min != null) {
+    if(plot.dqm.xAxis.max != null || plot.dqm.xAxis.min != null) {
+        plot.x.customised = true;
+    }
+    if(plot.dqm.yAxis.max != null || plot.dqm.yAxis.min != null) {
         plot.y.customised = true;
     }
-    if(content.dqmInfo.zAxis.max != null || content.dqmInfo.zAxis.min != null) {
+    if(plot.dqm.zAxis.max != null || plot.dqm.zAxis.min != null) {
         plot.z.customised = true;
-    }    
-    if(content.dqmInfo.xAxis.type=="log") {
-        x = d3.scale.log();
+    }   
+}
+function drawAxis(plot,hist) {
+    checkDqmLimits(plot); 
+    if(plot.dqm.xAxis.type=="log") {
+        plot.x.scale = d3.scale.log();
         plot.x.log = true;
-    } else
-        x = d3.scale.linear()
-             .domain([ json.hist.xaxis.first.value, 
-                json.hist.xaxis.last.value]);
-    plot.x.scale = x;
-    x.range([0, plot.area.width]);
+    } else { 
+        plot.x.scale = d3.scale.linear();
+        plot.x.scale.domain([hist.xaxis.first.value, hist.xaxis.last.value]);
+    }
+    plot.x.scale.range([0, plot.area.width]);
     
     if(plot.isTH1()) {
-        if(content.dqmInfo.yAxis.type=="log") {
-            y= d3.scale.log();
+        if(plot.dqm.yAxis.type=="log") {
+            plot.y.scale = d3.scale.log();
             plot.y.log = true;
-        } else
-            y= d3.scale.linear()
-               .domain([hist.values.min
-                 ,hist.values.max]);
-        plot.y.scale = y;
-        y.range([plot.area.height, 0])
+        } else {
+            plot.y.scale = d3.scale.linear();
+            plot.y.scale.domain([hist.values.min, hist.values.max]);
+        }
+        plot.y.scale.range([plot.area.height, 0])
          .clamp(true);
     }
     if(plot.isTH2()) {
-        if(content.dqmInfo.zAxis.type=="log") {
+        if(plot.dqm.zAxis.type=="log") {
             plot.z.scale = d3.scale.log();
             plot.z.log = true;
-        } else
-            plot.z.scale= d3.scale.linear()
-               .domain([hist.values.min
-                 ,hist.values.max]);
+        } else {
+            plot.z.scale = d3.scale.linear();
+            plot.z.scale.domain([hist.values.min, hist.values.max]);
+        }
         
         plot.z.scale.range([plot.area.height, 0])
          .clamp(true);
-        z = plot.z.scale;
     }
-    if(content.dqmInfo.xAxis.type=="log" && plot.x.min.value <= 0 && !(content.dqmInfo.xAxis.min > plot.bins.getXValueBiggerOf(0))) {
+    if(plot.dqm.xAxis.type=="log" && plot.x.min.value <= 0 && !(plot.dqm.xAxis.min > plot.bins.getXValueBiggerOf(0))) {
         var minId = plot.bins.getXBinBiggerOf(0)
         plot.x.setScaleLimit(minId,null);
         plot.x.customised = true;
     } else {
-        if(content.dqmInfo.xAxis.min != null) {
-            var minId = plot.bins.getXBinBiggerOf(content.dqmInfo.xAxis.min)
+        if(plot.dqm.xAxis.min != null) {
+            var minId = plot.bins.getXBinBiggerOf(plot.dqm.xAxis.min)
             plot.x.setScaleLimit(minId-1,null);
             plot.x.customised = true;
         } else {
             plot.x.setScaleLimit(plot.x.min.id,plot.x.max.id);
         }
     }
-    if(content.dqmInfo.xAxis.max != null) {
-        var maxId = plot.bins.getXBinBiggerOf(content.dqmInfo.xAxis.max)
+    if(plot.dqm.xAxis.max != null) {
+        var maxId = plot.bins.getXBinBiggerOf(plot.dqm.xAxis.max)
         plot.x.setScaleLimit(null,maxId);
         plot.x.customised = true;
     }
-    
     if(plot.isTH2()) {
-        if(content.dqmInfo.yAxis.type=="log")
-            y= d3.scale.log();
-        else
-            y= d3.scale.linear()
-                 .domain([hist.yaxis.first.value
-                     ,hist.yaxis.last.value]);
-        plot.y.scale = y;
-        y.range([plot.area.height, 0]);
-       
-        if(content.dqmInfo.yAxis.type=="log" && plot.y.min.value <= 0 && !(content.dqmInfo.yAxis.min > plot.bins.getXValueBiggerOf(0))) {
+        if(plot.dqm.yAxis.type=="log") {
+            plot.y.scale = d3.scale.log();
+            plot.y.log = true;
+        } else {
+            plot.y.scale = d3.scale.linear();
+            plot.y.scale.domain([hist.yaxis.first.value, hist.yaxis.last.value]);
+        }
+        plot.y.scale.range([plot.area.height, 0]);
+        
+        if(plot.dqm.yAxis.type=="log" && plot.y.min.value <= 0 && !(plot.dqm.yAxis.min > plot.bins.getXValueBiggerOf(0))) {
             var minId = plot.bins.getYBinBiggerOf(0)
             plot.y.setScaleLimit(minId,null);
         } else {
-            if(content.dqmInfo.yAxis.min != null) { 
-                var minId = plot.bins.getYBinBiggerOf(content.dqmInfo.yAxis.min)
+            if(plot.dqm.yAxis.min != null) { 
+                var minId = plot.bins.getYBinBiggerOf(plot.dqm.yAxis.min)
                 plot.y.setScaleLimit(minId-1,null);
             }
         }
-        if(content.dqmInfo.yAxis.max != null) {
-            var maxId = plot.bins.getYBinBiggerOf(content.dqmInfo.yAxis.max)
+        if(plot.dqm.yAxis.max != null) {
+            var maxId = plot.bins.getYBinBiggerOf(plot.dqm.yAxis.max)
             plot.y.setScaleLimit(null,maxId);
         }
-
-        dy.max = plot.y.max.value;
-        dy.min = plot.y.min.value;
-        dy.maxId = plot.y.max.id;
-        dy.minId = plot.y.min.id;
     }
-    
-    dx.max = plot.x.max.value;
-    dx.min = plot.x.min.value;
-    dx.maxId = plot.x.max.id;
-    dx.minId = plot.x.min.id;   
     if(plot.isTH1()) {
-        if(content.dqmInfo.yAxis.type=="log" && plot.y.min <= 0) {
+        if(plot.dqm.yAxis.type=="log" && plot.y.min <= 0) {
             var min = plot.bins.getFirstValueBiggerThan(0);
 //            alert(min)
             plot.y.setScaleDomain(min, null);
         }
-        dy.min = plot.y.min;
-        dy.max = plot.y.max;
         if(plot.isTProfile()) {
             var maxArray = [], minArray = [];
             for(var i=0; i!=plot.bins.xLen();++i) {
-                if(content.dqmInfo.yAxis.type!="log" || plot.bins.bins(i)-plot.bins.error(i) > 0)
+                if(plot.dqm.yAxis.type!="log" || plot.bins.bins(i)-plot.bins.error(i) > 0)
                     minArray.push(plot.bins.bins(i)-plot.bins.error(i));
-                if(content.dqmInfo.yAxis.type!="log" || plot.bins.bins(i)+plot.bins.error(i) > 0)
+                if(plot.dqm.yAxis.type!="log" || plot.bins.bins(i)+plot.bins.error(i) > 0)
                     maxArray.push(plot.bins.bins(i)+plot.bins.error(i));
             }
             plot.y.setScaleDomain(d3.min(minArray),d3.max(maxArray))
         }
-       if(content.dqmInfo.yAxis.type=="log")
-           if(content.dqmInfo.yAxis.min > 0) {
-               plot.y.setScaleDomain(content.dqmInfo.yAxis.min, content.dqmInfo.yAxis.max)
+       if(plot.dqm.yAxis.type=="log")
+           if(plot.dqm.yAxis.min > 0) {
+               plot.y.setScaleDomain(plot.dqm.yAxis.min, plot.dqm.yAxis.max)
            } else {
-               plot.y.setScaleDomain(null, content.dqmInfo.yAxis.max)
+               plot.y.setScaleDomain(null, plot.dqm.yAxis.max)
            }
        else
-           plot.y.setScaleDomain(content.dqmInfo.yAxis.min, content.dqmInfo.yAxis.max)
+           plot.y.setScaleDomain(plot.dqm.yAxis.min, plot.dqm.yAxis.max)
     }
     if(plot.isTH1() && (!plot.y.customised)) {
-        y.nice()
+        plot.y.scale.nice()
     }
     if(plot.isTH2()) {
-        if(content.dqmInfo.zAxis.type=="log" && plot.z.min <= 0) {
-            plot.z.setScaleDomain(null, content.dqmInfo.zAxis.max);
+        if(plot.dqm.zAxis.type=="log" && plot.z.min <= 0) {
+            plot.z.setScaleDomain(null, plot.dqm.zAxis.max);
         } else {
-            plot.z.setScaleDomain(content.dqmInfo.zAxis.min, content.dqmInfo.zAxis.max);
+            plot.z.setScaleDomain(plot.dqm.zAxis.min, plot.dqm.zAxis.max);
         }
     }
 
    var xAxis = d3.svg.axis()
-    .scale(x)
+    .scale(plot.x.scale)
     .orient("bottom");
     if(plot.isTH2() && plot.x.max.id - plot.x.min.id < 10) 
         xAxis.ticks(plot.x.max.id - plot.x.min.id +1)
@@ -892,7 +881,7 @@ function drawAxis(content , plot) {
 
     
     var yAxis = d3.svg.axis()
-        .scale(y)
+        .scale(plot.y.scale)
         .orient("left");
     if(plot.isTH2()  && plot.y.max.id - plot.y.min.id < 10)
         yAxis.ticks(plot.y.max.id - plot.y.min.id + 1)
@@ -1052,10 +1041,10 @@ function drawTH1bins(hist, plot) {
          
     cells.selectAll(".bin").data(stepBins).enter().append("line")
      .attr("class","bin")
-     .attr("x1",function(d) {return x(d.x)})
-     .attr("x2",function(d) {return x(d.x + d.width)})
-     .attr("y1",function(d) {return y(d.y)})
-     .attr("y2",function(d) {return y(d.y)})
+     .attr("x1",function(d) {return plot.x.scale(d.x)})
+     .attr("x2",function(d) {return plot.x.scale(d.x + d.width)})
+     .attr("y1",function(d) {return plot.y.scale(d.y)})
+     .attr("y2",function(d) {return plot.y.scale(d.y)})
      .attr("stroke",function(d) {
          if(d.y < plot.y.min || d.y > plot.y.max ) {
              return "none"
@@ -1066,41 +1055,35 @@ function drawTH1bins(hist, plot) {
     if(plot.isTProfile())
         cells.selectAll(".error").data(stepBins).enter().append("line")
          .attr("class","error")
-         .attr("x1",function(d) {return x(d.x + d.width/2)})
-         .attr("x2",function(d) {return x(d.x + d.width/2)})
-         .attr("y1",function(d) {return y(d.y-d.error)})
-         .attr("y2",function(d) {return y(d.y+d.error)})
+         .attr("x1",function(d) {return plot.x.scale(d.x + d.width/2)})
+         .attr("x2",function(d) {return plot.x.scale(d.x + d.width/2)})
+         .attr("y1",function(d) {return plot.y.scale(d.y-d.error)})
+         .attr("y2",function(d) {return plot.y.scale(d.y+d.error)})
          .attr("stroke","black")
      else {
-         var lastVal = y.domain()[0];
+         var lastVal = plot.y.scale.domain()[0];
          for(var i=0; i!=stepBins.length; ++i) {
              var d = stepBins[i];
              cells.append("line")
              .attr("class","vertical")
-             .attr("x1",x(d.x))
-             .attr("x2",x(d.x))
-             .attr("y1",y(lastVal))
-             .attr("y2",y(d.y))
+             .attr("x1",plot.x.scale(d.x))
+             .attr("x2",plot.x.scale(d.x))
+             .attr("y1",plot.y.scale(lastVal))
+             .attr("y2",plot.y.scale(d.y))
              .attr("stroke","black")
              lastVal = d.y;
          }
          var d = stepBins[stepBins.length-1];
          cells.append("line")
          .attr("class","vertical")
-         .attr("x1",x(d.x+d.width))
-         .attr("x2",x(d.x+d.width))
-         .attr("y1",y(lastVal))
-         .attr("y2",y(y.domain()[0]))
+         .attr("x1",plot.x.scale(d.x+d.width))
+         .attr("x2",plot.x.scale(d.x+d.width))
+         .attr("y1",plot.y.scale(lastVal))
+         .attr("y2",plot.y.scale(lastVal))
          .attr("stroke","black")
 
      }
-/*    cells.append("path")
-        .attr("class", "area")
-        .attr("d", area);
-
-    cells.append("path")
-        .attr("class", "line")
-        .attr("d", line);*/
+    return stepBins;
 }
 
 function drawTH2bins(hist, plot) {
@@ -1130,10 +1113,10 @@ function drawTH2bins(hist, plot) {
        .style("fill",function(d,i,j) {if(d<plot.z.min || d==0) {return "rgb(255,255,255)";} else {if(d>plot.z.max) {return zColor(plot.z.scale(plot.z.max))} else {return zColor(plot.z.scale(d));}}});
 
     rects
-    .attr("x",function(d,i,j) {return x(plot.bins.lowEdgeX(i));})
-    .attr("width",function(d,i,j) {return x(plot.bins.lowEdgeX(i+1)) - x(plot.bins.lowEdgeX(i));})
-    .attr("y",function(d,i,j) {return y(plot.bins.lowEdgeY(j+1));})
-    .attr("height",function(d,i,j) {return y(plot.bins.lowEdgeY(j)) - y(plot.bins.lowEdgeY(j+1));})
+    .attr("x",function(d,i,j) {return plot.x.scale(plot.bins.lowEdgeX(i));})
+    .attr("width",function(d,i,j) {return plot.x.scale(plot.bins.lowEdgeX(i+1)) - plot.x.scale(plot.bins.lowEdgeX(i));})
+    .attr("y",function(d,i,j) {return plot.y.scale(plot.bins.lowEdgeY(j+1));})
+    .attr("height",function(d,i,j) {return plot.y.scale(plot.bins.lowEdgeY(j)) - plot.y.scale(plot.bins.lowEdgeY(j+1));})
                      
     var cells = document.getElementById("cells").getBBox();
     if(plot.z.max != plot.z.min) {
@@ -1152,15 +1135,10 @@ function drawTH2bins(hist, plot) {
             .attr("y", xx)
             .attr("height", xx.rangeBand())
             .attr("width", plot.area.margin.right * 0.3)
-//            .style("fill", function(d) {return zColor(plot.z.scale.invert(d))})
             .style("fill", zColor)
-           
-        /*zz = d3.scale.linear()
-           .domain([plot.z.max,plot.z.min])
-           .range([0,cells.height]);*/
         
         var zAxis = d3.svg.axis()
-            .scale(z)
+            .scale(plot.z.scale)
             .tickSize(10)
             .orient("right")
             .tickFormat(d3.format("s"));
@@ -1210,7 +1188,7 @@ function drawStats(content,plot) {
                 statsBox.append("g")
                     .attr("id", "histStats"+i)
                     .attr("transform","translate(0,"+(deltaY)+")");
-            drawStatsBox(overlayHist, mainHistStats,statsBoxWidth,i)
+            drawStatsBox(new Plot(overlayHist), overlayHist, mainHistStats,statsBoxWidth,i)
             statsBoxSize = document.getElementById("histStats"+i).getBBox();
         }    
     }
@@ -1366,65 +1344,69 @@ function drawStatsBox(plot, hist, statsBox, statsBoxWidth, no) {
     }
 }
 var errorArray2;
-function drawOverlay(original, overlay, no, normalized) {
-    if(normalized) {
-//        var ratio = original.stats.sumOfWeights / overlay.stats.sumOfWeights;
-        var ratio = 1
-        var contentArray = overlay.bins.content.slice(dx.minId, dx.maxId);
-        var errorArray = overlay.bins.error.slice(dx.minId, dx.maxId);
-        errorArray2 = errorArray
-        var plotArea = svg.append("g").attr("id","overlay "+ no);
-        plotArea.selectAll(".point").data(stepBins).enter().append("circle")
-        .attr("class","point")
-        .attr("cx",function(d) {return x(d.x)})
-        .attr("cy",function(d,i) {return y(contentArray[i] * ratio) })
-        .attr("r",4)
-        .attr("id",function(d,i) {return i})    
-        .attr("fill",function(d,i) {if(y(contentArray[i] * ratio) == y.range()[0] || y(contentArray[i] * ratio) == y.range()[1]) {return "none"} else {return colorOfNo(no)};});
+var plot1, plot2;
+function drawOverlay(plot, overlayPlot, stepBins, no) {
+    plot1 = plot;
+    plot2 = overlayPlot;
+    var plotArea = svg.append("g").attr("id","overlay "+ no);
+    plotArea.selectAll(".point").data(stepBins).enter().append("circle")
+    .attr("class","point")
+    .attr("cx",function(d) {return plot.x.scale(d.x+d.width/2)})
+    .attr("cy",function(d,i) {return plot.y.scale(overlayPlot.bins.bins(i)) })
+    .attr("r",3)
+    .attr("id",function(d,i) {return i})
+    .attr("value",function(d,i){return overlayPlot.bins.bins(i)})
+    .attr("fill",function(d,i) {
+        if( overlayPlot.bins.error(i) == 0
+            || overlayPlot.bins.bins(i) > plot.y.scale.domain()[1] 
+            || overlayPlot.bins.bins(i) < plot.y.scale.domain()[0]) {
+            return "none"
+        } else {
+            return colorOfNo(no)
+        };
+    });
 
-        
-        plotArea.selectAll(".error").data(stepBins).enter().append("line")
-        .attr("class","error")
-        .attr("x1",function(d) {return x(d.x)})
-        .attr("x2",function(d) {return x(d.x)})
-        .attr("y1",function(d,i) {return y(((contentArray[i] -errorArray[i])* ratio)) })
-        .attr("y2",function(d,i) {return y(((contentArray[i] +errorArray[i])* ratio)) })
-//        .attr("y1",function(d,i) {return y(((contentArray[i] -d.error)* ratio)) })
-//        .attr("y2",function(d,i) {return y(((contentArray[i] +d.error)* ratio)) })
-//        .attr("y1",function(d,i) {return y((contentArray[i] * ratio)-d.error) })
-//        .attr("y2",function(d,i) {return y((contentArray[i] * ratio)+d.error) })
-        .attr("stroke",colorOfNo(no));
-        
-        plotArea.selectAll(".errorTop").data(stepBins).enter().append("line")
-        .attr("class","errorTop")
-        .attr("x1",function(d) {return x(d.x)-2})
-        .attr("x2",function(d) {return x(d.x)+2})
-        .attr("y1",function(d,i) {return y(((contentArray[i] +errorArray[i])* ratio)) })
-        .attr("y2",function(d,i) {return y(((contentArray[i] +errorArray[i])* ratio)) })
-//        .attr("y1",function(d,i) {return y(((contentArray[i] +d.error)* ratio)) })
-//        .attr("y2",function(d,i) {return y(((contentArray[i] +d.error)* ratio)) })
-//        .attr("y1",function(d,i) {return y((contentArray[i] * ratio)+d.error) })
-//        .attr("y2",function(d,i) {return y((contentArray[i] * ratio)+d.error) })
-        .attr("stroke",function(d,i) {if(errorArray[i] == 0 || y(((contentArray[i] +errorArray[i])* ratio)) == y.range()[1]) {return "none"} else {return colorOfNo(no)};});
-        
-        pplot.areaselectAll(".errorBottom").data(stepBins).enter().append("line")
-        .attr("class","errorBottom")
-        .attr("x1",function(d) {return x(d.x)-2})
-        .attr("x2",function(d) {return x(d.x)+2})
-        .attr("y1",function(d,i) {return y(((contentArray[i] -errorArray[i])* ratio)) })
-        .attr("y2",function(d,i) {return y(((contentArray[i] -errorArray[i])* ratio)) })       
-//        .attr("y1",function(d,i) {return y(((contentArray[i] -d.error)* ratio)) })
-//        .attr("y2",function(d,i) {return y(((contentArray[i] -d.error)* ratio)) })       
-//        .attr("y1",function(d,i) {return y((contentArray[i] * ratio)-d.error) })
-//        .attr("y2",function(d,i) {return y((contentArray[i] * ratio)-d.error) })
-        .attr("id",function(d,i) {return i})
-        .attr("stroke",function(d,i) {if(errorArray[i] == 0 || y(((contentArray[i] -errorArray[i])* ratio)) == y.range()[0]) {return "none"} else {return colorOfNo(no)};});
-        
-    } else {
-        
-    }
+    plotArea.selectAll(".error").data(stepBins).enter().append("line")
+    .attr("class","error")
+    .attr("x1",function(d) {return plot.x.scale(d.x+d.width/2)})
+    .attr("x2",function(d) {return plot.x.scale(d.x+d.width/2)})
+    .attr("y1",function(d,i) {return plot.y.scale(((overlayPlot.bins.bins(i) -overlayPlot.bins.error(i)))) })
+    .attr("y2",function(d,i) {return plot.y.scale(((overlayPlot.bins.bins(i) +overlayPlot.bins.error(i)))) })
+    .attr("stroke",colorOfNo(no));
+    
+    plotArea.selectAll(".errorTop").data(stepBins).enter().append("line")
+    .attr("class","errorTop")
+    .attr("x1",function(d) {return plot.x.scale(d.x+d.width/2)-2})
+    .attr("x2",function(d) {return plot.x.scale(d.x+d.width/2)+2})
+    .attr("y1",function(d,i) {return plot.y.scale(((overlayPlot.bins.bins(i) +overlayPlot.bins.error(i)))) })
+    .attr("y2",function(d,i) {return plot.y.scale(((overlayPlot.bins.bins(i) +overlayPlot.bins.error(i)))) })
+    .attr("stroke",function(d,i) {
+        if(overlayPlot.bins.error(i) == 0 
+                || (overlayPlot.bins.bins(i) +overlayPlot.bins.error(i)) > plot.y.scale.domain()[1] 
+                || (overlayPlot.bins.bins(i) +overlayPlot.bins.error(i)) < plot.y.scale.domain()[0]) {
+            return "none";
+        } else {
+            return colorOfNo(no)
+        }
+     });
+    
+    plotArea.selectAll(".errorBottom").data(stepBins).enter().append("line")
+    .attr("class","errorBottom")
+    .attr("x1",function(d) {return plot.x.scale(d.x+d.width/2)-2})
+    .attr("x2",function(d) {return plot.x.scale(d.x+d.width/2)+2})
+    .attr("y1",function(d,i) {return plot.y.scale(((overlayPlot.bins.bins(i) -overlayPlot.bins.error(i)))) })
+    .attr("y2",function(d,i) {return plot.y.scale(((overlayPlot.bins.bins(i) -overlayPlot.bins.error(i)))) })       
+    .attr("id",function(d,i) {return i})
+    .attr("stroke",function(d,i) {
+        if(overlayPlot.bins.error(i) == 0 
+                || (overlayPlot.bins.bins(i) -overlayPlot.bins.error(i)) > plot.y.scale.domain()[1]
+                || (overlayPlot.bins.bins(i) -overlayPlot.bins.error(i)) < plot.y.scale.domain()[0]) {
+            return "none"
+        } else {
+            return colorOfNo(no)
+        }
+     });
 }
-
 
 var start = new Date(),
 jsonObject = JSON.parse('$JSON'),
