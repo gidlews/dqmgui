@@ -1090,7 +1090,7 @@ function drawTH2bins(hist, plot) {
     var range = 400
     var zColor = 
         d3.scale.linear()
-        .domain([400, 4*range/5, 3*range/5, 2*range/5, range/5,  0])
+        .domain([400, range*4/5, range*3/5, range*2/5, range*1/5,  0])
         .range(["rgb(255,0,255)","rgb(0,0,255)","rgb(0,255,255)", "rgb(0,255,0)","rgb(255,255,0)", "rgb(255,0,0)"])
        .interpolate(d3.interpolateRgb);    
     
@@ -1100,7 +1100,6 @@ function drawTH2bins(hist, plot) {
        .attr("width", plot.area.width)
        .attr("heigth", plot.area.heigth)
        .selectAll(".row")
-//       .data(contentArray)
        .data(plot.bins.binsArray())
        .enter()
       .append("g")
@@ -1120,7 +1119,6 @@ function drawTH2bins(hist, plot) {
                      
     var cells = document.getElementById("cells").getBBox();
     if(plot.z.max != plot.z.min) {
-//        var values = d3.range(plot.z.max,plot.z.min, (plot.z.min-plot.z.max)/200);
         var values = d3.range(0,400,2)
         var xx = d3.scale.ordinal()
            .domain(values)
