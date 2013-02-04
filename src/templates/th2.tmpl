@@ -798,7 +798,11 @@ function drawAxis(main, plot, hist) {
     }
     if(plot.isTH2()) {
         if(plot.dqm.zAxis.type=="log" && plot.z.min <= 0) {
-            plot.z.setScaleDomain(null, plot.dqm.zAxis.max);
+            if(plot.dqm.zAxis.min > 0) {
+                plot.z.setScaleDomain(plot.dqm.zAxis.min, plot.dqm.zAxis.max)
+            } else {
+                plot.z.setScaleDomain(null, plot.dqm.zAxis.max)
+            }
         } else {
             plot.z.setScaleDomain(plot.dqm.zAxis.min, plot.dqm.zAxis.max);
         }
