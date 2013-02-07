@@ -85,7 +85,7 @@ function layoutimg(img, container, focus, onclick, ref, size, ob,
 	      + (ref != "object" ? ";ref=" + ref : "")
 	      + xargs;
   var url = imgref + param + sizeparam;
-  var jsonplainurl= jsonplainref + param + ";formatted=1;norm=1";
+  var jsonplainurl= jsonplainref + param /*+ ";formatted=1;norm=1"*/;
   var jsonurl  = jsonref + param+";norm=1";
   //TODO resonable way of constructing URLs... 
   img.setAttribute('alarm', ob.alarm); // attach the alarm property directly to the HTML img tag
@@ -414,7 +414,9 @@ GUI.Plugin.DQMCanvas = new function()
   var _zoomWin          = null;
   var _jsonWin          = null;
   var _jsonTab			= null;
-  this.getJsonWin = function() {return _jsonTab} //debug
+  var _zoomData         = {json : null, url : null, w : null, h : null}
+  this.getJsonTab = function() {return _jsonTab} //debug
+  this.getJsonWin = function() {return _jsonWin} //debug
   var _zoomlocal        = false;
   var _rootPath         = null;
 
@@ -1162,7 +1164,7 @@ GUI.Plugin.DQMCanvas = new function()
       img.src = src;
   };
 
-  this.updateJsonWin = function() 
+  this.updateJsonWin = function(tab) 
   {
 	var src;
 	if (!_jsonURL || _jsonURL == '')
@@ -1175,10 +1177,16 @@ GUI.Plugin.DQMCanvas = new function()
 	if (!_jsonPureURL || _jsonPureURL == '')
 		src = "";
 	else
-		src = _jsonPureURL;
+		src = _jsonPureURL + ";formatted=1;norm=1";
 	// Prevent iframe from refreshing iframe...
 	if (Ext.get("jsonFormFrame") && Ext.get("jsonFormFrame").dom.src != src) 
-		Ext.get("jsonFormFrame").dom.src = src;	
+		Ext.get("jsonFormFrame").dom.src = src;
+
+    if(tab != null && tab.title == "Plot" && _jsonPureURL != "") {
+
+         drawZoom(_jsonPureURL, _zoomData, tab.getInnerWidth(), tab.getInnerHeight())
+    }
+        
   };
   
   this.updateZoomPlot = function()
@@ -1189,9 +1197,9 @@ GUI.Plugin.DQMCanvas = new function()
     var winHeight = _zoomWin.getInnerHeight();
     current = current.replace(/;w=\d+/, ';w=' + winWidth);
     current = current.replace(/;h=\d+/, ';h=' + winHeight);
-    if ( (_jsonMode || _jsonMode == null)
-         && (Ext.get("jsonFrame") && Ext.get("jsonFrame").dom.src != _jsonURL) )
-      _self.updateJsonWin();
+    if ( (_jsonMode || _jsonMode == null) && _jsonPureURL != "" ) {
+      _self.updateJsonWin(_jsonTab.getActiveTab());
+    }
     _self.updateZoomImage(_zoomWin.body.dom.firstChild, winWidth, winHeight, current);
     if (title != _zoomWin.title)
       _zoomWin.setTitle(title);
@@ -1199,6 +1207,8 @@ GUI.Plugin.DQMCanvas = new function()
 
   this.drawZoom = function(data)
   {
+    _zoomWin.resumeEvents();
+    _jsonWin.resumeEvents();
     /* Update zoom window position and size from server, if server owns state.
        We don't update contents of the window here, that is done via focus. */
     var x = y = w = h = 0;
@@ -1254,7 +1264,7 @@ GUI.Plugin.DQMCanvas = new function()
     _zoomWin.setPosition(x, y);
     _jsonWin.setPosition(jx, jy);
     _jsonWin.setSize(jw, jh);
-
+    drawZoom(_jsonPureURL, _zoomData, _jsonWin.getInnerWidth()-2,_jsonWin.getInnerHeight()-28)
     /* Always hide or show according to server state, but without events that
        are normally triggered by direct user interaction. */
     _zoomWin.suspendEvents();
@@ -1264,6 +1274,7 @@ GUI.Plugin.DQMCanvas = new function()
     _jsonWin.setVisible(data.show && data.jsonmode);
     _jsonWin.resumeEvents();
     _jsonModeChanged = false;
+    
   };
 
   this.zoomResize = function(panel, w, h)
@@ -1339,6 +1350,7 @@ GUI.Plugin.DQMCanvas = new function()
 			 }}]});
     _zoomWin.show(this);
     _zoomWin.setVisible(false);
+    
     _zoomWin.on('bodyresize', _self.zoomResize, _self);
     _zoomWin.on('beforehide', function() { _gui.makeCall(_url() + "/setZoom?show=no"); return false; }, _self);
     _zoomWin.on('move', _self.zoomMove, _self);
@@ -1350,6 +1362,11 @@ GUI.Plugin.DQMCanvas = new function()
 			{
 				activeTab : 0,
 				items : [
+	                        {
+	                            id:'Plot',
+	                            title : 'Plot',
+	                            html : '<div width="100%" height="100%" id="jsonPlotDiv"/>'
+	                        },
 						{
 							title : 'Data',
 							html : '<iframe width="100%" height="100%" id="jsonFrame" src="" />'
@@ -1357,9 +1374,12 @@ GUI.Plugin.DQMCanvas = new function()
 						{
 							title : 'Doc',
 							html : '<iframe width="100%" height="100%" id="jsonFormFrame" src="" />'
-						} ]
+						}
+  ]
 			});
-    tabPanel.on("tabchange", function(panel, tab) {_self.updateJsonWin()})
+    tabPanel.on("tabchange", function(panel, tab) {
+        _self.updateJsonWin(tab);
+    })
     _jsonTab = tabPanel;
     _jsonWin = new Ext.Window(
         {
@@ -1367,15 +1387,14 @@ GUI.Plugin.DQMCanvas = new function()
             modal : false,
             id : 'jsonWin',
             title : 'json',
-            height : h,
-            width : w,
+/*            height : h,
+            width : w,*/
             resizable : true,
             shadow : false,
             closeAction : 'hide',
             style : {position : 'fixed'},
 //            html: '<iframe width="100%" height="100%" id="jsonFrame" src="" />',
-			items : [ tabPanel
-			],            
+			items : [ tabPanel ],            
             tools : [ {
                 id : 'close',
                 qtip : 'close',
@@ -1387,14 +1406,20 @@ GUI.Plugin.DQMCanvas = new function()
                 }
             }]
        });
-    _jsonWin.on('bodyresize', function(el, w, h) {
-        if(w < 0 || h < 0) return;
-        _gui.asyncCall(_url() + "/setJsonZoom?w=" + w + ';h=' +h);
-        
+    _jsonTab.on('bodyresize', function(el, w, h) {
         if(window.frames[1] && window.frames[1].redraw) {
             window.frames[1].redraw(w - 10,h - 50);
         }
+        if(redraw && _jsonTab.getActiveTab()) {
+            redraw(_zoomData, w, h);
+        }
     }, _self);
+    
+    _jsonWin.on('bodyresize', function(el, w, h) {
+        if(w < 0 || h < 0) return;
+        _gui.asyncCall(_url() + "/setJsonZoom?w=" + w + ';h=' +h);
+    }, _self);    
+   
     _jsonWin.on('move',  function(el, x, y) {
         if(x < 0 || y < 0) return;
         _gui.asyncCall(_url() + "/setJsonZoom?x=" + x + ';y=' +y);

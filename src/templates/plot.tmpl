@@ -1,54 +1,3 @@
-<!DOCTYPE html>
-<meta charset="utf-8">
-<html>
-<style>
-body {
-  font: 10px sans-serif;
-}
-
-.axis path, .axis line {
-  fill: none;
-  stroke: #000;
-  shape-rendering: crispEdges;
-}
-
-.area {
-  fill: lightsteelblue;
-}
-
-.line {
-  fill: none;
-  stroke: steelblue;
-  stroke-width: 1.5px;
-}
-
-.dot {
-  fill: white;
-  stroke: steelblue;
-  stroke-width: 1.5px;
-}
-
-.axistitle {
-	font-size: 1.5em;
-	font-weight:bold;
-}
-
-.title {
-	font-size: 2em;
-	font-weight:bold;
-}
-.link:hover {
-    cursor:pointer
-}
-</style>
-<body style="width:100px">
-<!--  <script src="d3\d3.v2.js"></script> -->
-<!--  <script src="https://raw.github.com/mbostock/d3/master/d3.v2.js"></script> -->
-<script src="http://d3js.org/d3.v2.js"></script>
-
-
-<script>
-
 Plot = function(hist) {
     this.isTProfile = function() {
         return (this.type == "TProfile")
@@ -439,6 +388,7 @@ Plot = function(hist) {
 }
 
 function drawHist(content, div, width, height, start) {
+	//height -= 20; width -= 20;
     var main = div.append("svg")
     var json = content.list[0];
     if(!(json.hist.type == "TH2" 
@@ -456,11 +406,10 @@ function drawHist(content, div, width, height, start) {
             left: horiMargin
         };
     main
-    .attr("id","main11")
     .attr("width", width)
     .attr("height", height)
  
-	drawTitleArea(main, json.hist, plot)
+	drawTitleArea(main, json.hist, plot, width)
 	
 	svg = main
 	 	   .append("g")
@@ -486,7 +435,7 @@ function drawHist(content, div, width, height, start) {
 	    }
 	}
 	
-	drawStats(main, content, plot);
+	drawStats(main, content, plot, width);
 
 	svg.attr("transform", "translate(" + plot.area.margin.left + "," + (plot.area.margin.top) + ")");
 
@@ -499,13 +448,13 @@ function drawHist(content, div, width, height, start) {
       .attr("id","generatedIn")
       .text("generated in "+(new Date() - start)+" ms")
       .attr("x",0)
-      .attr("y",svgHeight - 3)
+      .attr("y",height - 3)
       .attr("font-size","7px")
       .attr("font-family","Arial")
       .attr("dominant-baseline","auto")//hanging
 //     alert(new Date() - start)
 }
-function drawTitleArea(main, hist, plot) {
+function drawTitleArea(main, hist, plot, width) {
     var titleHeight = 0;
     if(hist.title) {
         var title = main.append("g")
@@ -518,7 +467,7 @@ function drawTitleArea(main, hist, plot) {
             .text(hist.title);
         for(var size=2; size>=0; size-=0.1) {
             var titleBox = main.select("#title").node().getBBox();
-            if(titleBox.width < (svgWidth-100) && titleBox.height < plot.area.margin.top) {
+            if(titleBox.width < (width - 100) && titleBox.height < plot.area.margin.top) {
                 plot.area.margin.bottom += plot.area.margin.top - (titleBox.height + 5);
                 plot.area.margin.top = titleBox.height + 5;
                 break;
@@ -535,7 +484,7 @@ function drawTitleArea(main, hist, plot) {
     var statsLabel = 
             main.append("g")
              .attr("id", "stats")
-             .attr("transform","translate(" + (svgWidth - statsBoxWidth) + "," + 0 + ")")
+             .attr("transform","translate(" + (width - statsBoxWidth) + "," + 0 + ")")
              .on("click",function() {
                  if(main.select("#statsBox").attr("display") == "none")
                      main.select("#statsBox").attr("display","block");
@@ -634,12 +583,12 @@ function  organiseLabels(main, axisG, min) {
     axisG.selectAll("text")
     .each(
         function(d,i) {
-            if(d && d.toString().indexOf(".") != -1 && d.toString().length - d.toString().indexOf(".") > 3) {
+            if(d && d3.select(this).text().indexOf(".") != -1 && d3.select(this).text().length - d3.select(this).text().indexOf(".") > 3) {
                 d3.select(this)
                 .text( 
                     s(d.toFixed(minValPrecition))
                 )
-            }
+            } 
         }
     )
 }
@@ -1141,15 +1090,14 @@ function drawTH2bins(svg, hist, plot) {
         }
     }
 }
-function drawStats(main,content,plot) {
+function drawStats(main,content,plot, width) {
     var hist = content.list[0].hist;
     var titleBox = main.select("#title").node().getBBox();  
     var statsBoxWidth = 150, statsBoxHeight = 220; 
     var statsBox = 
         main.append("g")
          .attr("id","statsBox")
-         .attr("transform","translate(" + (svgWidth - statsBoxWidth) + "," + plot.area.margin.top + ")")
-         .attr("display","none");
+         .attr("transform","translate(" + (width - statsBoxWidth) + "," + plot.area.margin.top + ")");
     var mainHistStats =  
         statsBox.append("g")
             .attr("id", "mainHistStats")
@@ -1169,6 +1117,7 @@ function drawStats(main,content,plot) {
             statsBoxSize = main.select("#histStats"+i).node().getBBox();
         }    
     }
+    statsBox.attr("display","none");
     statsBox.append("text")
         .text("X ")
         .attr("dominant-baseline","hanging")
@@ -1245,7 +1194,7 @@ function drawStatsBox(main, plot, hist, statsBox, statsBoxWidth, no) {
                 }
             }
         }
-        statsNamesBox = main.select("#"+statsBox.attr("id")).node().getBBox();
+        statsNamesBox = statsBox.node().getBBox();
         statsBoxHeight= statsNamesBox.y+statsNamesBox.height;
        
         var xDelta = 0; 
@@ -1380,17 +1329,15 @@ function drawOverlay(plot, overlayPlot, stepBins, no) {
         }
      });
 }
-function redraw(w,h) {
+function redraw(prevZoomData, w, h) {
+	if(prevZoomData.json == null || (Math.abs(h - prevZoomData.h) < 5 && Math.abs(w - prevZoomData.w) < 5))
+		return;
+    prevZoomData.w = w;
+    prevZoomData.h = h; 
     var start = new Date();
-    d3.select("#content").remove()
-    var json = JSON.parse('$JSON');
-    var div = 
-        d3.select("body")
-          .append("div")
-          .attr("id","content");
-    if(!w || !h)
-        w = h = 500;
-    drawHist(json, div, w, h, start);
+    var extJsonWinDiv = d3.select("#jsonPlotDiv");
+    extJsonWinDiv.select("svg").remove()
+    drawHist(prevZoomData.json, extJsonWinDiv, w, h, start);
 }
 function draw(json) {
     var start = new Date();
@@ -1413,9 +1360,26 @@ function draw(json) {
         drawHist(json, div2, svgWidth/2, svgHeight/2, start);
     }
 }
-draw(JSON.parse('$JSON'));
-  			
-</script>
-</body>
-</html>
-
+function drawZoom(dataUrl, prevZoomData, w, h) {
+    if(dataUrl == null || dataUrl == "" || w < 10 || h < 10)
+        return;
+	if(w == null && h == null) {
+		w = prevZoomData.w;
+		h = prevZoomData.h;
+	}
+	if(prevZoomData.url == dataUrl && Math.abs(h - prevZoomData.h) < 5 && Math.abs(w - prevZoomData.w) < 5)
+		return;
+    prevZoomData.w = w;
+    prevZoomData.h = h;
+	var extJsonWinDiv = d3.select("#jsonPlotDiv");
+	if(dataUrl != prevZoomData.url) {
+		d3.json(dataUrl, function(data) {
+			extJsonWinDiv.selectAll("*").remove();
+			prevZoomData.url = dataUrl;
+			prevZoomData.json = data;
+			drawHist(data, extJsonWinDiv, w, h, new Date());
+		})
+	} else {
+		redraw(w,h);
+	}
+}

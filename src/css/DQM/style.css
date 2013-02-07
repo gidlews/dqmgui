@@ -571,3 +571,38 @@ div.notebox {
 .linkme {
     background-image: url(../static/anchor.png) !important;
 }
+
+.axis path, .axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.area {
+  fill: lightsteelblue;
+}
+
+.line {
+  fill: none;
+  stroke: steelblue;
+  stroke-width: 1.5px;
+}
+
+.dot {
+  fill: white;
+  stroke: steelblue;
+  stroke-width: 1.5px;
+}
+
+.axistitle {
+	font-size: 1.5em;
+	font-weight:bold;
+}
+
+.title {
+	font-size: 2em;
+	font-weight:bold;
+}
+.link:hover {
+    cursor:pointer
+}
