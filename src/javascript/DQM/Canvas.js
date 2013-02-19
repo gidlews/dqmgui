@@ -57,7 +57,7 @@ function setsizeclass(item, title, size, ref)
     title.style.width = '';
 }
 
-function layoutimg(img, container, focus, onclick, ref, size, ob,
+function layoutimg(div, img, container, focus, onclick, ref, size, ob,
 		   rowdiv, nrows, row, ncols, col, n, xargs)
 {
   var sizeparam = setsize(container, img, size, row, nrows, col, ncols);
@@ -87,6 +87,11 @@ function layoutimg(img, container, focus, onclick, ref, size, ob,
   var url = imgref + param + sizeparam;
   var jsonplainurl= jsonplainref + param /*+ ";formatted=1;norm=1"*/;
   var jsonurl  = jsonref + param+";norm=1";
+  if(div != null && div.parentNode != null && div.rendered == null)
+      d3.json(jsonplainurl, function(data) {
+          drawMini(data, d3.select(div), img.width, img.height, new Date());
+          div.rendered = true;
+      })
   //TODO resonable way of constructing URLs... 
   img.setAttribute('alarm', ob.alarm); // attach the alarm property directly to the HTML img tag
   var border = ((ob.alarm && (nrows > 1 || ncols > 1))
@@ -99,14 +104,20 @@ function layoutimg(img, container, focus, onclick, ref, size, ob,
     img.src = url;	
     img.jsonsrc = jsonurl;	//jsonref
     img.jsonpuresrc = jsonplainurl;
+    div.src = url;  
+    div.jsonsrc = jsonurl;  //jsonref
+    div.jsonpuresrc = jsonplainurl;
   }
   else if (img.src != url)
   {
     img.dqmsrc = url;
     img.jsonsrc = jsonurl; //jsonref;
     img.jsonpuresrc = jsonplainurl;
+    div.dqmsrc = url;  
+    div.jsonsrc = jsonurl;  //jsonref
+    div.jsonpuresrc = jsonplainurl;
     GUI.ImgLoader.load(n+"."+row+"."+col, img, url, border, _IMG_BORDER_NEW);
-    if (img.src.replace(/\?.*/, "?") != imgref)
+    if (img.src != null && img.src.replace(/\?.*/, "?") != imgref)
       img.src = ROOTPATH + "/static/blank.gif";
     border = img.style.border;
   }
@@ -115,20 +126,21 @@ function layoutimg(img, container, focus, onclick, ref, size, ob,
     img.style.border = border;
 
   var title = ob.title || ob.name;
-  if (img.title != title)
-      img.title = title;
+  if (img.title != title) 
+      div.title = img.title = title;
 
   if (img.getAttribute('dqmhelp') != ob.desc)
     img.setAttribute('dqmhelp', ob.desc);
 
   if (! img.onclick && onclick)
-    img.onclick = onclick;
+    div.onclick = img.onclick = onclick;
 
   if (! img.ondblclick && onclick)
-    img.ondblclick = onclick;
+      div.ondblclick = img.ondblclick = onclick;
 
   if (ob.name == focus && onclick)
-    onclick({ target: img });
+//    onclick({ target: img });
+      onclick({ target: div });
 }
 
 // Layout one canvas item.
@@ -151,7 +163,7 @@ function layout(type, container, item, obj, sz, ref, strip, focus, onclick, xsty
   {
     title = item.firstChild;
   }
-
+  
   // If it's a directory, show in compact form: title only.  The
   // server always gives directories first, only then plots.
   if (obj.dir)
@@ -230,9 +242,17 @@ function layout(type, container, item, obj, sz, ref, strip, focus, onclick, xsty
       var img = (col < rowdiv.childNodes.length
 	         ? rowdiv.childNodes[col]
 	         : document.createElement("img"));
-      if (! img.parentNode)
-        rowdiv.appendChild(img);
-
+      var div = (col < rowdiv.childNodes.length
+              ? rowdiv.childNodes[col]
+              : document.createElement("div"));
+      div.className = "plotDiv";
+      div.id = "plot"+row+col;
+      div.tmp = "aa";
+      if(_d3RenderButton != null)
+//      if (! div.parentNode) //img
+//        rowdiv.appendChild(div);//img
+      if (! img.parentNode) //img
+        rowdiv.appendChild(img);//img
       var overlay = false;
       var xargs = "";
       if (ref.position == "overlay"
@@ -297,7 +317,7 @@ function layout(type, container, item, obj, sz, ref, strip, focus, onclick, xsty
 	showref = "object";
       }
 
-      layoutimg(img, container, focus, onclick, showref, size, ob,
+      layoutimg(div, img, container, focus, onclick, showref, size, ob,
 		rowdiv, nrows, row, ncols, col, n, xargs);
     }
 
@@ -324,9 +344,14 @@ function layout(type, container, item, obj, sz, ref, strip, focus, onclick, xsty
           var img = (realcol < rowdiv.childNodes.length
 	             ? rowdiv.childNodes[realcol]
 	             : document.createElement("img"));
-          if (! img.parentNode)
-            rowdiv.appendChild(img);
-
+          var div = (realcol < rowdiv.childNodes.length
+                  ? rowdiv.childNodes[realcol]
+                  : document.createElement("div"));
+          div.style.display = "inline";
+//          if (! div.parentNode) //img
+//              rowdiv.appendChild(div); //img
+          if (! img.parentNode) //img
+              rowdiv.appendChild(img); //img
 	  ob.alarm = 0;
 	  if (ref.show == "customise" && ob.withref != "yes")
           {
@@ -366,7 +391,7 @@ function layout(type, container, item, obj, sz, ref, strip, focus, onclick, xsty
 	      showref = "object";
 	    }
           }
-          layoutimg(img, container, focus, null /* omit onclick for ref */,
+          layoutimg(div, img, container, focus, null /* omit onclick for ref */,
 		    showref, size, ob, rowdiv, nrows, row, ncols, col,
 		    "ref_" + refcnt + "_" + n, "");
         }
@@ -383,7 +408,7 @@ function layout(type, container, item, obj, sz, ref, strip, focus, onclick, xsty
   setsizeclass(item, title, size, ref);
   return item;
 }
-
+var _d3RenderButton   = null;
 GUI.Plugin.DQMCanvas = new function()
 {
   Ext.QuickTips.init();
@@ -483,6 +508,16 @@ GUI.Plugin.DQMCanvas = new function()
     // Set help message.
     e = e || window.event;
     var hit = (e.srcElement || e.target);
+//    alert(hit.parentNode.parentNode.tagName)
+    alert(""+ hit.id)
+    if(hit.tagName != "IMG" && hit.tagName != "DIV") {
+        alert("a")
+        hit = Ext.get(hit).findParent("div")
+    }
+//    alert(hit.tagName)
+//    Ext.select
+    // jakos dobrac się do diva..
+    
     var help = hit.getAttribute('dqmhelp');
     var titleabbrev = _sanitise(hit.title ? " " + hit.title.replace(/.*\//, "") : "");
     if (help)
@@ -569,6 +604,7 @@ GUI.Plugin.DQMCanvas = new function()
       });
 
       _map(_canvas.childNodes, function(node) {
+        alert("map "+ hit.tagName)
         var thishit = (node == hit.parentNode.parentNode);
 	if (thishit && node.className.indexOf("picked") < 0)
 	  node.className += " picked";
@@ -642,6 +678,7 @@ GUI.Plugin.DQMCanvas = new function()
 
   this.focus = function(e)
   {
+      
     var hit = _self.dofocus(e);
     /* Update server if this was user-originated focus event.  Don't call back
        if we are setting focus internally, e.g. through server update. */
@@ -719,6 +756,12 @@ GUI.Plugin.DQMCanvas = new function()
                                        id : 'canvas-jsonData',
                                        enableToggle : true,
                                        pressed : _jsonMode || false });
+    _d3RenderButton = new Ext.Button({  text : 'D3',
+                                        toggleHandler : _self.switchJsonMode,
+                                        scope : _self,
+                                        id : 'canvas-d3',
+                                        enableToggle : true,
+                                        pressed : false });
 
     tb.add({ text          : 'Size:' ,
 	     xtype         : 'tbtext' },
@@ -781,6 +824,7 @@ GUI.Plugin.DQMCanvas = new function()
 		      html: 'ROOT File'},
 	     hidden: true
 	   },
+	   _d3RenderButton,
 	   _jsonDataButton,
 	   linkmeAction
 	  );
@@ -1028,7 +1072,6 @@ GUI.Plugin.DQMCanvas = new function()
 	  }
 	}
       }
-
       var newClass = obj.className.replace(/size-[a-z]+/, size.className);
       if (obj.className != newClass)
 	obj.className = newClass;
@@ -1065,13 +1108,11 @@ GUI.Plugin.DQMCanvas = new function()
     // and changes in scroll position.  Fill the canvas with the
     // shown objects.
     var item = null;
-
     for (var n = 0, item = _canvas.firstChild; n < _shown.length;
 	 ++n, item = item.nextSibling)
       item = layout("div", _canvas, item, _shown[n], _size,
 		    data.reference, data.strip, data.focus,
 		    this.focus, "", "div" + n);
-
     // Remove whatever is left of old contents.
     while (item)
     {
@@ -1411,7 +1452,7 @@ GUI.Plugin.DQMCanvas = new function()
             window.frames[1].redraw(w - 10,h - 50);
         }
         if(redraw && _jsonTab.getActiveTab()) {
-            redraw(_zoomData, w, h);
+            redrawCheck(_zoomData, w, h);
         }
     }, _self);
     

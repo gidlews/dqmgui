@@ -606,3 +606,6 @@ div.notebox {
 .link:hover {
     cursor:pointer
 }
+.plotDiv {
+	display:inline
+}
