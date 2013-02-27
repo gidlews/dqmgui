@@ -721,7 +721,8 @@ class DQMWorkspace:
                  'dqm.root':           {},
                  'dqm.focus':          {},
                  'dqm.drawopts':       {},
-                 'dqm.myobjs':         {} }
+                 'dqm.myobjs':         {},
+                 'dqm.d3':             0}
 
   def __init__(self, gui, rank, category, name):
     #gui._addCSSFragment("%s/fonts/fonts.css" % gui._yui)
@@ -804,6 +805,7 @@ class DQMWorkspace:
            reset = None,
            add = None,
            zoom = None,
+           d3 = None,
            jsonmode = None,
            certzoom = None,
            **kwargs):
@@ -1017,6 +1019,11 @@ class DQMWorkspace:
         raise HTTPError(500, "Invalid Zoom show parameter")
       session['dqm.zoom.show'] = (zoom == "yes")
 
+    if d3 != None:
+      if not isinstance(zoom, str) or d3 not in ("yes", "no"):
+        raise HTTPError(500, "Invalid Zoom show parameter")
+      session['dqm.d3'] = (d3 == "yes")
+
     if jsonmode != None:
       if not isinstance(jsonmode, str) or jsonmode not in ("yes", "no"):
         raise HTTPError(500, "Invalid JsonMode parameter")
@@ -1171,6 +1178,14 @@ class DQMWorkspace:
     jsonmode = kwargs.get('mode', None)
     if isinstance(jsonmode, str) or jsonmode in ("yes", "no"):
       session['dqm.zoom.jsonmode'] = (jsonmode == "yes")
+
+    self.gui._saveSession(session)
+    return self._state(session)
+
+  def sessionSetD3mode(self, session, *args, **kwargs):
+    d3mode = kwargs.get('mode', None)
+    if isinstance(d3mode, str) or d3mode in ("yes", "no"):
+      session['dqm.d3'] = (d3mode == "yes")
 
     self.gui._saveSession(session)
     return self._state(session)

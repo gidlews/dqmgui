@@ -386,78 +386,127 @@ Plot = function(hist) {
     if(this.isTH2() && !hist.bins.lowEdgeY)
         this.bins.defWidthY = (hist.yaxis.last.value - hist.yaxis.first.value) / this.bins.yLen();
 }
-function drawMini(content, div, width, height, start) {
-    if(div.selectAll("svg")[0].length == 0) {
-        drawHist(content, div, width, height, start);
+function drawMini(content, svg, width, height, start) {
+        drawHist(content, svg, width, height, start);
+}
+//function drawHist(content, div, width, height, start) {
+function drawHist(content, main, width, height, start) {
+	//height -= 20; width -= 20;
+//    var main = div.append("svg").style("display","relative")
+    try {
+        var json = content.list[0];
+        if(!(json.hist.type == "TH2" 
+            || json.hist.type == "TProfile2D" 
+            || json.hist.type == "TH1"
+            || json.hist.type == "TProfile"))
+            return;
+        var vertMargin = Math.min(Math.max(height/10, 40), 60),
+            horiMargin = Math.min(Math.max(width/10, 35), 60);
+        var plot = new Plot(json.hist);
+        plot.area.margin = {
+                top: Math.min(Math.max(height/10, 20), 60),
+                right: (plot.isTH2() ? horiMargin: 0), 
+                bottom: vertMargin, 
+                left: horiMargin
+            };
+        main
+        .attr("width", width)
+        .attr("height", height)
+     
+        drawTitleArea(main, json.hist, plot, width)
+        
+        svg = main
+               .append("g")
+               .attr("transform", "translate(" + plot.area.margin.left + "," + plot.area.margin.top + ")");
+        
+        plot.area.width = width - plot.area.margin.left - plot.area.margin.right;
+        plot.area.height = height - plot.area.margin.top - plot.area.margin.bottom;
+        plot.dqm = content.dqmInfo;
+        drawAxis(main,plot,json.hist);
+        if(plot.isTH2()) {
+            drawTH2bins(svg,json.hist, plot);
+        } else {
+            var stepBins = drawTH1bins(svg, json.hist, plot);
+            if(content.list.length > 1) {
+                for(var i=1; i < content.list.length; ++i) {
+                    var overlayHist = content.list[i].hist;
+                    var overlayPlot = new Plot(content.list[i].hist)
+                    overlayPlot.x.scale = plot.x.scale;
+                    overlayPlot.x.setScaleLimit(plot.x.min.id, plot.x.max.id)
+                    if(overlayHist.values.min != 0 || overlayHist.values.max != 0)
+                        drawOverlay(plot, overlayPlot, stepBins, i)
+                }
+            }
+        }
+        
+        drawStats(main, content, plot, width);
+
+        svg.attr("transform", "translate(" + plot.area.margin.left + "," + (plot.area.margin.top) + ")");
+
+        var svgBox =  document.getElementsByTagName("svg")[0].getBBox();
+        main.select("content")
+         .style("width", svgBox.width+"px")
+         .style("height", svgBox.height+"px")
+
+         main.append("text")
+          .attr("id","generatedIn")
+          .text("generated in "+(new Date() - start)+" ms")
+          .attr("x",0)
+          .attr("y",height - 3)
+          .attr("font-size","7px")
+          .attr("font-family","Arial")
+          .attr("dominant-baseline","auto")//hanging
+    } catch (error) {
+        drawErrorBox(main, error, width, height, true)
     }
 }
-function drawHist(content, div, width, height, start) {
-	//height -= 20; width -= 20;
-    var main = div.append("svg")
-    var json = content.list[0];
-    if(!(json.hist.type == "TH2" 
-        || json.hist.type == "TProfile2D" 
-        || json.hist.type == "TH1"
-        || json.hist.type == "TProfile"))
-        return;
-    var vertMargin = Math.min(Math.max(height/10, 40), 60),
-        horiMargin = Math.min(Math.max(width/10, 35), 60);
-    var plot = new Plot(json.hist);
-    plot.area.margin = {
-            top: Math.min(Math.max(height/10, 20), 60),
-            right: (plot.isTH2() ? horiMargin: 0), 
-            bottom: vertMargin, 
-            left: horiMargin
-        };
-    main
-    .attr("width", width)
-    .attr("height", height)
- 
-	drawTitleArea(main, json.hist, plot, width)
-	
-	svg = main
-	 	   .append("g")
-	 	   .attr("transform", "translate(" + plot.area.margin.left + "," + plot.area.margin.top + ")");
-    
-	plot.area.width = width - plot.area.margin.left - plot.area.margin.right;
-	plot.area.height = height - plot.area.margin.top - plot.area.margin.bottom;
-	plot.dqm = content.dqmInfo;
-	drawAxis(main,plot,json.hist);
-	if(plot.isTH2()) {
-	    drawTH2bins(svg,json.hist, plot);
-	} else {
-	    var stepBins = drawTH1bins(svg, json.hist, plot);
-	    if(content.list.length > 1) {
-	        for(var i=1; i < content.list.length; ++i) {
-	            var overlayHist = content.list[i].hist;
-	            var overlayPlot = new Plot(content.list[i].hist)
-                overlayPlot.x.scale = plot.x.scale;
-	            overlayPlot.x.setScaleLimit(plot.x.min.id, plot.x.max.id)
-	            if(overlayHist.values.min != 0 || overlayHist.values.max != 0)
-	                drawOverlay(plot, overlayPlot, stepBins, i)
-	        }
-	    }
-	}
-	
-	drawStats(main, content, plot, width);
+function drawErrorBox(main, error, width, height, hide) {
+    errorBox = main.append("g").attr("id","errorBox");
+    errorBox.append("rect")
+     .attr("x",width*0.05)
+     .attr("y",height*0.05)
+     .attr("width",width*0.9)
+     .attr("height",height*0.9)
+     .attr("fill","white")
+     .attr("stroke","black")
+     
+    errorBox.append("text")
+     .attr("x",width/2)
+     .attr("y",height/4)
+     .attr("text-anchor","middle")//begin
+     .attr("dominant-baseline","middle")//hanging
+     .attr("font-size","14px")
+     .attr("font-family","Arial")
+     .attr("fill","red")
+     .text("ERROR")
+     
+   var errorField = errorBox.append("text")
+     .attr("transform","translate("+width/4+","+height/3+")")
+     .attr("font-size","7px")
+     .attr("font-family","Arial")
+     
+   errorField
+     .append("tspan")
+     .attr("dy", 15)
+     .attr("x", 0)
+     .text(error.name)
+   errorField
+     .append("tspan")
+     .attr("dy", 15)
+     .attr("x", 0)
+     .text(error.message)
+   if(hide)
+       errorBox.append("text")
+         .text("X ")
+         .attr("dominant-baseline","hanging")
+         .attr("text-anchor","end")
+         .attr("font-weight", "bold")
+         .attr("font-size",15)
+         .attr("transform","translate("+(width*0.9-2)+","+(height*0.1+2)+")")
+         .attr("class","link")
+         .on("click",function() {main.select("#errorBox").attr("display","none")});
+} 
 
-	svg.attr("transform", "translate(" + plot.area.margin.left + "," + (plot.area.margin.top) + ")");
-
-    var svgBox =  document.getElementsByTagName("svg")[0].getBBox();
-    main.select("content")
-	 .style("width", svgBox.width+"px")
-     .style("height", svgBox.height+"px")
-
-     main.append("text")
-      .attr("id","generatedIn")
-      .text("generated in "+(new Date() - start)+" ms")
-      .attr("x",0)
-      .attr("y",height - 3)
-      .attr("font-size","7px")
-      .attr("font-family","Arial")
-      .attr("dominant-baseline","auto")//hanging
-//     alert(new Date() - start)
-}
 function drawTitleArea(main, hist, plot, width) {
     var titleHeight = 0;
     if(hist.title) {
@@ -1367,7 +1416,7 @@ function draw(json) {
         drawHist(json, div2, svgWidth/2, svgHeight/2, start);
     }
 }
-function drawZoom(dataUrl, prevZoomData, w, h) {
+function drawZoomPlot(dataUrl, prevZoomData, w, h) {
     if(dataUrl == null || dataUrl == "" || w < 10 || h < 10)
         return;
 	if(w == null && h == null) {
@@ -1382,10 +1431,14 @@ function drawZoom(dataUrl, prevZoomData, w, h) {
 	var extJsonWinDiv = d3.select("#jsonPlotDiv");
 	if(dataUrl != prevZoomData.url) {
 		d3.json(dataUrl, function(data) {
-			extJsonWinDiv.selectAll("*").remove();
+		    extJsonWinDiv.selectAll("*").remove();
+            var svg = 
+                extJsonWinDiv.append("svg")
+                .attr("height",h)
+                .attr("width",w);
 			prevZoomData.url = dataUrl;
 			prevZoomData.json = data;
-			drawHist(data, extJsonWinDiv, w, h, new Date());
+			drawHist(data, svg , w, h, new Date());
 		})
 	} else {
 		redraw(prevZoomData,w,h);

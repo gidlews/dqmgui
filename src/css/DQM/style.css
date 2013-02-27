@@ -607,5 +607,11 @@ div.notebox {
     cursor:pointer
 }
 .plotDiv {
-	display:inline
+	display:inline-block
+}
+.load {
+	position: relative;
+	margin-left: -16px;
+	margin-top: -32px;
+	z-index: 1;
 }
