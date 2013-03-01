@@ -6110,6 +6110,7 @@ public:
       std::string   rxstr        (py::extract<std::string>(session.get("dqm.search")));
       py::dict      pydrawopts   (workspaceParam<py::dict>(session, "dqm.drawopts", py::dict()));
       py::tuple     myobjst      (workspaceParam<py::tuple>(session, "dqm.myobjs", py::tuple()));
+      int   d3  = py::extract<int>(session.get("dqm.d3", -1));
       StringAtomSet myobjs;
 
       for (py::stl_input_iterator<std::string> e, i(myobjst); i != e; ++i)
@@ -6161,7 +6162,7 @@ public:
         return makeResponse(StringFormat("{'kind':'DQMCanvas', 'items':%1,"
 					 " 'root':%2, 'focus':%3, 'size':'%4', %5,"
 			    		 " %6, %7, 'reference':%8, 'strip':%9,"
-					 " 'layoutroot':%11}")
+					 " 'layoutroot':%11, 'd3':%12}")
 			    .arg(shownToJSON(contents, status, drawopts,
 					     StringAtom(&stree, root),
 					     sample, shown))
@@ -6173,7 +6174,8 @@ public:
 			    .arg(zoom)
 			    .arg(reference)
 			    .arg(strip)
-			    .arg(stringToJSON(layoutroot)),
+			    .arg(stringToJSON(layoutroot))
+                .arg(d3),
 			    sample.type == SAMPLE_LIVE ? 30 : 300, current,
 			    services, workspaceName_, workspaces,
 			    submenu, sample, filter, reference, strip,

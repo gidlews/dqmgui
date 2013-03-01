@@ -1,54 +1,3 @@
-<!DOCTYPE html>
-<meta charset="utf-8">
-<html>
-<style>
-body {
-  font: 10px sans-serif;
-}
-
-.axis path, .axis line {
-  fill: none;
-  stroke: #000;
-  shape-rendering: crispEdges;
-}
-
-.area {
-  fill: lightsteelblue;
-}
-
-.line {
-  fill: none;
-  stroke: steelblue;
-  stroke-width: 1.5px;
-}
-
-.dot {
-  fill: white;
-  stroke: steelblue;
-  stroke-width: 1.5px;
-}
-
-.axistitle {
-	font-size: 1.5em;
-	font-weight:bold;
-}
-
-.title {
-	font-size: 2em;
-	font-weight:bold;
-}
-.link:hover {
-    cursor:pointer
-}
-</style>
-<body style="width:100px">
-<!--  <script src="d3\d3.v2.js"></script> -->
-<!--  <script src="https://raw.github.com/mbostock/d3/master/d3.v2.js"></script> -->
-<script src="http://d3js.org/d3.v2.js"></script>
-
-
-<script>
-
 Plot = function(hist) {
     this.isTProfile = function() {
         return (this.type == "TProfile")
@@ -437,87 +386,130 @@ Plot = function(hist) {
     if(this.isTH2() && !hist.bins.lowEdgeY)
         this.bins.defWidthY = (hist.yaxis.last.value - hist.yaxis.first.value) / this.bins.yLen();
 }
-
-function drawHist(content, div, width, height, start) {
-    var main = div.append("svg")
-    var json = content.list[0];
-    if(!(json.hist.type == "TH2" 
-        || json.hist.type == "TProfile2D" 
-        || json.hist.type == "TH1"
-        || json.hist.type == "TProfile"))
-        return;
-    var vertMargin = Math.min(Math.max(height/10, 40), 60),
-        horiMargin = Math.min(Math.max(width/10, 35), 60);
-    var plot = new Plot(json.hist);
-    plot.area.margin = {
-            top: Math.min(Math.max(height/10, 20), 60),
-            right: (plot.isTH2() ? horiMargin: 0), 
-            bottom: vertMargin, 
-            left: horiMargin
-        };
-    main
-    .attr("id","main11")
-    .attr("width", width)
-    .attr("height", height)
- 
-	drawTitleArea(main, json.hist, plot)
-	
-	svg = main
-	 	   .append("g")
-	 	   .attr("transform", "translate(" + plot.area.margin.left + "," + plot.area.margin.top + ")");
-    
-	plot.area.width = width - plot.area.margin.left - plot.area.margin.right;
-	plot.area.height = height - plot.area.margin.top - plot.area.margin.bottom;
-	plot.dqm = content.dqmInfo;
-	drawAxis(main,plot,json.hist);
-	if(plot.isTH2()) {
-	    drawTH2bins(svg,json.hist, plot);
-	} else {
-	    var stepBins = drawTH1bins(svg, json.hist, plot);
-	    if(content.list.length > 1) {
-	        for(var i=1; i < content.list.length; ++i) {
-	            var overlayHist = content.list[i].hist;
-	            var overlayPlot = new Plot(content.list[i].hist)
-                overlayPlot.x.scale = plot.x.scale;
-	            overlayPlot.x.setScaleLimit(plot.x.min.id, plot.x.max.id)
-	            if(overlayHist.values.min != 0 || overlayHist.values.max != 0)
-	                drawOverlay(plot, overlayPlot, stepBins, i)
-	        }
-	    }
-	}
-	
-	drawStats(main, content, plot);
-
-	svg.attr("transform", "translate(" + plot.area.margin.left + "," + (plot.area.margin.top) + ")");
-
-    var svgBox =  document.getElementsByTagName("svg")[0].getBBox();
-    main.select("content")
-	 .style("width", svgBox.width+"px")
-     .style("height", svgBox.height+"px")
-
-     main.append("text")
-      .attr("id","generatedIn")
-      .text("generated in "+(new Date() - start)+" ms")
-      .attr("x",0)
-      .attr("y",svgHeight - 3)
-      .attr("font-size","7px")
-      .attr("font-family","Arial")
-      .attr("dominant-baseline","auto")//hanging
-      
-     main.append("a")
-      .attr("id","edit")
-      .attr("xlink:href",document.URL.replace("plotjsonfairy","editfairy"))
-      .attr("target","_black")
-      .attr("transform","translate("+svgWidth+","+(svgHeight - 3)+")")
-     .append("text")
-      .text("edit")
-      .attr("font-size","12px")
-      .attr("font-family","Arial")
-      .attr("dominant-baseline","auto")//hanging
-      .attr("text-anchor","end")
-//     alert(new Date() - start)
+function drawMini(content, svg, width, height, start) {
+        svg = svg.append("g").attr("transform","scale(0.5)");
+        drawHist(content, svg, width*2, height*2, start);
 }
-function drawTitleArea(main, hist, plot) {
+//function drawHist(content, div, width, height, start) {
+function drawHist(content, svg, width, height, start) {
+
+	//height -= 20; width -= 20;
+//    var main = div.append("svg").style("display","relative")
+//    try {
+        var json = content.list[0];
+        if(!(json.hist.type == "TH2" 
+            || json.hist.type == "TProfile2D" 
+            || json.hist.type == "TH1"
+            || json.hist.type == "TProfile"))
+            return;
+        var vertMargin = Math.min(Math.max(height/10, 40), 60),
+            horiMargin = Math.min(Math.max(width/10, 35), 60);
+        var plot = new Plot(json.hist);
+        plot.area.margin = {
+                top: Math.min(Math.max(height/10, 20), 60),
+                right: (plot.isTH2() ? horiMargin: 0), 
+                bottom: vertMargin, 
+                left: horiMargin
+            };
+        svg
+        .attr("width", width)
+        .attr("height", height)
+     
+        drawTitleArea(svg, json.hist, plot, width)
+        
+        main = svg
+               .append("g")
+               .attr("transform", "translate(" + plot.area.margin.left + "," + plot.area.margin.top + ")");
+        
+        plot.area.width = width - plot.area.margin.left - plot.area.margin.right;
+        plot.area.height = height - plot.area.margin.top - plot.area.margin.bottom;
+        plot.dqm = content.dqmInfo;
+        prepareAxis(main,svg,plot,json.hist);
+        drawAxis(main,svg,plot,json.hist);
+        if(plot.isTH2()) {
+            drawTH2bins(main,json.hist, plot);
+        } else {
+            var stepBins = drawTH1bins(main, json.hist, plot);
+            if(content.list.length > 1) {
+                for(var i=1; i < content.list.length; ++i) {
+                    var overlayHist = content.list[i].hist;
+                    var overlayPlot = new Plot(content.list[i].hist)
+                    overlayPlot.x.scale = plot.x.scale;
+                    overlayPlot.x.setScaleLimit(plot.x.min.id, plot.x.max.id)
+                    if(overlayHist.values.min != 0 || overlayHist.values.max != 0)
+                        drawOverlay(plot, overlayPlot, stepBins, i)
+                }
+            }
+        }
+        drawStats(svg, content, plot, width);
+
+        main.attr("transform", "translate(" + plot.area.margin.left + "," + (plot.area.margin.top) + ")");
+
+        var svgBox =  document.getElementsByTagName("svg")[0].getBBox();
+        svg.select("content")
+         .style("width", svgBox.width+"px")
+         .style("height", svgBox.height+"px")
+
+         svg.append("text")
+          .attr("id","generatedIn")
+          .text("generated in "+(new Date() - start)+" ms")
+          .attr("x",0)
+          .attr("y",height - 3)
+          .attr("font-size","7px")
+          .attr("font-family","Arial")
+          .attr("dominant-baseline","auto")//hanging
+/*    } catch (error) {
+        drawErrorBox(svg, error, width, height, true)
+    }*/
+}
+function drawErrorBox(main, error, width, height, hide) {
+    errorBox = main.append("g").attr("id","errorBox");
+    errorBox.append("rect")
+     .attr("x",width*0.05)
+     .attr("y",height*0.05)
+     .attr("width",width*0.9)
+     .attr("height",height*0.9)
+     .attr("fill","white")
+     .attr("stroke","black")
+     
+    errorBox.append("text")
+     .attr("x",width/2)
+     .attr("y",height/4)
+     .attr("text-anchor","middle")//begin
+     .attr("dominant-baseline","middle")//hanging
+     .attr("font-size","14px")
+     .attr("font-family","Arial")
+     .attr("fill","red")
+     .text("ERROR")
+     
+   var errorField = errorBox.append("text")
+     .attr("transform","translate("+width/4+","+height/3+")")
+     .attr("font-size","7px")
+     .attr("font-family","Arial")
+     
+   errorField
+     .append("tspan")
+     .attr("dy", 15)
+     .attr("x", 0)
+     .text(error.name)
+   errorField
+     .append("tspan")
+     .attr("dy", 15)
+     .attr("x", 0)
+     .text(error.message)
+   if(hide)
+       errorBox.append("text")
+         .text("X ")
+         .attr("dominant-baseline","hanging")
+         .attr("text-anchor","end")
+         .attr("font-weight", "bold")
+         .attr("font-size",15)
+         .attr("transform","translate("+(width*0.9-2)+","+(height*0.1+2)+")")
+         .attr("class","link")
+         .on("click",function() {main.select("#errorBox").attr("display","none")});
+} 
+
+function drawTitleArea(main, hist, plot, width) {
     var titleHeight = 0;
     if(hist.title) {
         var title = main.append("g")
@@ -530,7 +522,7 @@ function drawTitleArea(main, hist, plot) {
             .text(hist.title);
         for(var size=2; size>=0; size-=0.1) {
             var titleBox = main.select("#title").node().getBBox();
-            if(titleBox.width < (svgWidth-100) && titleBox.height < plot.area.margin.top) {
+            if(titleBox.width < (width - 100) && titleBox.height < plot.area.margin.top) {
                 plot.area.margin.bottom += plot.area.margin.top - (titleBox.height + 5);
                 plot.area.margin.top = titleBox.height + 5;
                 break;
@@ -547,7 +539,7 @@ function drawTitleArea(main, hist, plot) {
     var statsLabel = 
             main.append("g")
              .attr("id", "stats")
-             .attr("transform","translate(" + (svgWidth - statsBoxWidth) + "," + 0 + ")")
+             .attr("transform","translate(" + (width - statsBoxWidth) + "," + 0 + ")")
              .on("click",function() {
                  if(main.select("#statsBox").attr("display") == "none")
                      main.select("#statsBox").attr("display","block");
@@ -646,12 +638,12 @@ function  organiseLabels(main, axisG, min) {
     axisG.selectAll("text")
     .each(
         function(d,i) {
-            if(d && d.toString().indexOf(".") != -1 && d.toString().length - d.toString().indexOf(".") > 3) {
+            if(d && d3.select(this).text().indexOf(".") != -1 && d3.select(this).text().length - d3.select(this).text().indexOf(".") > 3) {
                 d3.select(this)
                 .text( 
                     s(d.toFixed(minValPrecition))
                 )
-            }
+            } 
         }
     )
 }
@@ -706,7 +698,7 @@ function checkDqmLimits(plot) {
         plot.z.customised = true;
     }   
 }
-function drawAxis(main, plot, hist) {
+function prepareAxis(main, svg, plot, hist) {
     checkDqmLimits(plot); 
     if(plot.dqm.xAxis.type=="log") {
         plot.x.scale = d3.scale.log();
@@ -820,8 +812,9 @@ function drawAxis(main, plot, hist) {
             plot.z.setScaleDomain(plot.dqm.zAxis.min, plot.dqm.zAxis.max);
         }
     }
-
-   var xAxis = d3.svg.axis()
+}
+function drawAxis(main, svg, plot, hist) {
+    var xAxis = d3.svg.axis()
     .scale(plot.x.scale)
     .orient("bottom");
     if(plot.isTH2() && plot.x.max.id - plot.x.min.id < 10) 
@@ -833,25 +826,22 @@ function drawAxis(main, plot, hist) {
     }
    
     var xAxisArea =
-       svg.append("g")
+        main.append("g")
         .attr("class", "x axis")
         .attr("id","xaxis");
     xAxisArea
      .append("g")
      .attr("id","xaxisscale")
      .call(xAxis);
-    if(plot.isTH1()) 
-        xAxisArea.attr("transform", "translate(0," + (plot.area.height)+ ")")
-    else
-        xAxisArea.attr("transform", "translate(0," + (plot.area.height +1)+ ")")
+    xAxisArea.attr("transform", "translate(0," + (plot.area.height +1)+ ")")
     if(hist.xaxis.labels) 
-        drawXLabels(main,hist,plot);  
+        drawXLabels(svg,hist,plot);  
     else 
-        organiseXLabels(main, plot.x.min.value)
+        organiseXLabels(svg, plot.x.min.value)
         
     if(hist.xaxis.title) {
-        var xAxisBox = main.select("#xaxis").node().getBBox();
-        var xtitle = main.select("#xaxis").append("text")
+        var xAxisBox = svg.select("#xaxis").node().getBBox();
+        var xtitle = svg.select("#xaxis").append("text")
             .text(hist.xaxis.title)
             .attr("transform","translate("+(plot.area.width /*+ plot.area.margin.right*/)+", "+(xAxisBox.y+ xAxisBox.height)+")")
             .attr("text-anchor","end")
@@ -862,8 +852,8 @@ function drawAxis(main, plot, hist) {
             .attr("y",0);
 /*      for(var size=1.5; size>=0; size-=0.1) {
             ;
-            if(main.select("#xtitle").node().getBBox().width < plot.area.width 
-                    && main.select("#xaxis").node().getBBox().height < plot.area.margin.bottom)
+            if(svg.select("#xtitle").node().getBBox().width < plot.area.width 
+                    && svg.select("#xaxis").node().getBBox().height < plot.area.margin.bottom)
                 break;
             xtitle.style("font-size", size+"em");           
         }*/
@@ -881,7 +871,7 @@ function drawAxis(main, plot, hist) {
         yAxis.tickFormat(d3.format("s"));
     }
     var s = d3.format("s");
-    var yAxisArea = svg.append("g")
+    var yAxisArea = main.append("g")
         .attr("class", "y axis")
         .attr("id","yaxis")
     yAxisArea
@@ -889,18 +879,17 @@ function drawAxis(main, plot, hist) {
     .attr("id","yaxisscale")
     .call(yAxis);
     
-    organiseYLabels(main, plot.y.min.value || plot.y.min)
+    organiseYLabels(svg, plot.y.min.value || plot.y.min)
     
-    if(plot.isTH2())
-        yAxisArea.attr("transform", "translate(-1,0)")
+    yAxisArea.attr("transform", "translate(-1,-1)")
 /*    if(isTH1(hist.type) && content.dqmInfo.yAxis.type == "log") {
-        var logLabel = main.select("#yaxisscale")
+        var logLabel = svg.select("#yaxisscale")
                 .selectAll("text")[0];
         for(var i = 1; i < logLabel.length; ++i) {
             var firstLabel = logLabel[i-1].getBBox();
             var secondLabel = logLabel[i].getBBox();
             if(firstLabel.y + firstLabel.height > secondLabel.y) {
-                main.select("#yaxisscale")
+                svg.select("#yaxisscale")
                 .selectAll("text").each(function(){
                     if(d3.select(this).text().toString()[0] != "1")
                         d3.select(this).style("display","none")
@@ -910,10 +899,10 @@ function drawAxis(main, plot, hist) {
         }
     }*/
     if(plot.isTH2() &&  hist.yaxis.labels) {
-        var gLabels = main.select("#yaxisscale")
-        main.select("#yaxisscale")
+        var gLabels = svg.select("#yaxisscale")
+        svg.select("#yaxisscale")
              .selectAll("text").remove();
-        var labelsPosition =  (main.select("#yaxisscale").node().getBBox().x);
+        var labelsPosition =  (svg.select("#yaxisscale").node().getBBox().x);
         yLabels = gLabels.selectAll(".label")
         .data(hist.yaxis.labels)
         .enter().append("text")
@@ -925,10 +914,10 @@ function drawAxis(main, plot, hist) {
     }
     
     if(hist.yaxis && hist.yaxis.title) {
-        var ytitle = main.select("#yaxis").append("g").attr("id","gytitle").append("text")
+        var ytitle = svg.select("#yaxis").append("g").attr("id","gytitle").append("text")
             .text(hist.yaxis.title)
             .attr("transform","translate("+
-                    (main.select("#yaxis").node().getBBox().x-5)+", 0)  rotate(-90)")
+                    (svg.select("#yaxis").node().getBBox().x-5)+", 0)  rotate(-90)")
             .attr("text-anchor","end")
             .attr("dominant-baseline","auto")//hanging
             .attr("class","axistitle")
@@ -939,51 +928,51 @@ function drawAxis(main, plot, hist) {
     var yTitleSize = 1.5;
     var yLabelSize = 10;
     
-    var titleBox = main.select("#title").node().getBBox();
+    var titleBox = svg.select("#title").node().getBBox();
     //try only 5 times to corect it if not possible leave it
-    for (var i = 0; i<5 &&(main.select("#yaxis").node().getBBox().height > plot.area.height
-            || main.select("#yaxis").node().getBBox().width > plot.area.margin.left); ++i) {
-        if(hist.yaxis && hist.yaxis.title && main.select("#ytitle").node().getBBox().width > plot.area.height) {
-            yTitleSize =yTitleSize*plot.area.height/main.select("#ytitle").node().getBBox().width - 0.05;
+    for (var i = 0; i<5 &&(svg.select("#yaxis").node().getBBox().height > plot.area.height
+            || svg.select("#yaxis").node().getBBox().width > plot.area.margin.left); ++i) {
+        if(hist.yaxis && hist.yaxis.title && svg.select("#ytitle").node().getBBox().width > plot.area.height) {
+            yTitleSize =yTitleSize*plot.area.height/svg.select("#ytitle").node().getBBox().width - 0.05;
             ytitle.style("font-size", yTitleSize+"em");
         }
-        if(main.select("#yaxis").node().getBBox().width > plot.area.margin.left) {
-            yLabelSize =Math.round(yLabelSize*(plot.area.margin.left/main.select("#yaxis").node().getBBox().width - 0.05));
+        if(svg.select("#yaxis").node().getBBox().width > plot.area.margin.left) {
+            yLabelSize =Math.round(yLabelSize*(plot.area.margin.left/svg.select("#yaxis").node().getBBox().width - 0.05));
 //          yLabels.style("font-size", yLabelSize+"px");
-            main.select("#yaxisscale").selectAll("text").style("font-size", yLabelSize+"px");
+            svg.select("#yaxisscale").selectAll("text").style("font-size", yLabelSize+"px");
             if(ytitle) {
                 yTitleSize -= 0.2; 
-                ytitle.attr("transform","translate("+(main.select("#yaxisscale").node().getBBox().x)+", "+0+")  rotate(-90)")
+                ytitle.attr("transform","translate("+(svg.select("#yaxisscale").node().getBBox().x)+", "+0+")  rotate(-90)")
                 .style("font-size", yTitleSize+"em");
             }
         }
     }
-    plot.area.margin.left = main.select("#yaxis").node().getBBox().width;
+    plot.area.margin.left = svg.select("#yaxis").node().getBBox().width;
     
     var xTitleSize = 1.5;
     var xLabelSize = 10;
     var xTickSize = 6;
     var i;
-    for (i = 0; i<5 &&(main.select("#xaxis").node().getBBox().width > plot.area.width
-            || main.select("#xaxis").node().getBBox().height > plot.area.margin.bottom); ++i) {
-        if(hist.xaxis.title && main.select("#xtitle").node().getBBox().width > plot.area.width) {
-            xTitleSize =xTitleSize*plot.area.width/main.select("#xtitle").node().getBBox().width - 0.05;
+    for (i = 0; i<5 &&(svg.select("#xaxis").node().getBBox().width > plot.area.width
+            || svg.select("#xaxis").node().getBBox().height > plot.area.margin.bottom); ++i) {
+        if(hist.xaxis.title && svg.select("#xtitle").node().getBBox().width > plot.area.width) {
+            xTitleSize =xTitleSize*plot.area.width/svg.select("#xtitle").node().getBBox().width - 0.05;
             xtitle.style("font-size", xTitleSize+"em");
         }
-        if(main.select("#xaxis").node().getBBox().height > plot.area.margin.bottom) {
+        if(svg.select("#xaxis").node().getBBox().height > plot.area.margin.bottom) {
             xLabelSize -= 1;
             xTickSize -= 0.5;
-            main.select("#xaxis").selectAll(".tick")
+            svg.select("#xaxis").selectAll(".tick")
               .attr("y2",xTickSize);
             if(hist.xaxis.labels) {
                 var labelsPosition =  (xAxisBox.y);
                 xLabels
                  .style("font-size", xLabelSize+"px")
             } else
-                main.select("#xaxisscale").selectAll("text")
+                svg.select("#xaxisscale").selectAll("text")
                  .style("font-size", xLabelSize+"px")
                  .attr("y",xTickSize+3);
-            var xLabelBox = main.select("#xaxisscale").node().getBBox();
+            var xLabelBox = svg.select("#xaxisscale").node().getBBox();
             if(xtitle) {
                 xTitleSize -= 0.2; 
                 xtitle
@@ -1003,7 +992,7 @@ function colorOfNo(no) {
     }
 }
 
-function drawTH1bins(svg, hist, plot) {
+function drawTH1bins(main, hist, plot) {
     stepBins = [];
     for(var i = 0; i!=plot.bins.xLen(); ++i) {
         var tmp = {};
@@ -1024,7 +1013,7 @@ function drawTH1bins(svg, hist, plot) {
         }
     }
     var binsTable;
-    var cells = svg 
+    var cells = main 
         .append("g")
          .style("width", plot.area.width)
          .style("heigth", plot.area.heigth)
@@ -1076,7 +1065,7 @@ function drawTH1bins(svg, hist, plot) {
     return stepBins;
 }
 
-function drawTH2bins(svg, hist, plot) {
+function drawTH2bins(main, hist, plot) {
     var range = plot.area.height;
     var zColor = 
         d3.scale.linear()
@@ -1085,7 +1074,7 @@ function drawTH2bins(svg, hist, plot) {
        .interpolate(d3.interpolateRgb);    
 
     var rects = 
-          svg
+          main
           .append("g")
            .attr("id","cells")
            .attr("width", plot.area.width)
@@ -1108,14 +1097,14 @@ function drawTH2bins(svg, hist, plot) {
     .attr("y",function(d,i,j) {return plot.y.scale(plot.bins.lowEdgeY(j+1));})
     .attr("height",function(d,i,j) {return plot.y.scale(plot.bins.lowEdgeY(j)) - plot.y.scale(plot.bins.lowEdgeY(j+1));})
                      
-    var cells = svg.select("#cells").node().getBBox();
+    var cells = main.select("#cells").node().getBBox();
     if(plot.z.max != plot.z.min) {
         var values = d3.range(0,400,2)
         var xx = d3.scale.ordinal()
            .domain(values)
            .rangeBands([0,cells.height],0);
         
-        svg.append("g")
+        main.append("g")
          .attr("id","zaxis")
          .selectAll("rect")
            .data(values)
@@ -1131,44 +1120,43 @@ function drawTH2bins(svg, hist, plot) {
             .tickSize(10)
             .orient("right")
             .tickFormat(d3.format("s"));
-        var zAxisBox = svg.select("#zaxis").node().getBBox();
+        var zAxisBox = main.select("#zaxis").node().getBBox();
         
-        svg.select("#zaxis").append("g")
+        main.select("#zaxis").append("g")
             .attr("class", "z axis")
             .attr("transform", "translate("+(zAxisBox.x+zAxisBox.width)+",0)")
             .attr("id","zaxis")
             .call(zAxis);
-        organiseZLabels(svg, plot.z.min)
+        organiseZLabels(main, plot.z.min)
         var zTitleSize = 1.5;
         var zLabelSize = 10;
         var zTicksLane = 10;
         var i;
-        for (i = 0; i<5 && svg.select("#zaxis").node().getBBox().width > plot.area.margin.right; ++i) {
+        for (i = 0; i<5 && main.select("#zaxis").node().getBBox().width > plot.area.margin.right; ++i) {
             zLabelSize--;
-            svg.select("#zaxis").selectAll("text")
+            main.select("#zaxis").selectAll("text")
               .style("font-size", zLabelSize+"px")
               .attr("x",zLabelSize+3);
-            svg.select("#zaxis").selectAll(".tick")
+            main.select("#zaxis").selectAll(".tick")
               .attr("x2",zLabelSize)
         }
     }
 }
-function drawStats(main,content,plot) {
+function drawStats(svg,content,plot, width) {
     var hist = content.list[0].hist;
-    var titleBox = main.select("#title").node().getBBox();  
+    var titleBox = svg.select("#title").node().getBBox();  
     var statsBoxWidth = 150, statsBoxHeight = 220; 
     var statsBox = 
-        main.append("g")
+        svg.append("g")
          .attr("id","statsBox")
-         .attr("transform","translate(" + (svgWidth - statsBoxWidth) + "," + plot.area.margin.top + ")")
-         .attr("display","none");
+         .attr("transform","translate(" + (width - statsBoxWidth) + "," + plot.area.margin.top + ")");
     var mainHistStats =  
         statsBox.append("g")
             .attr("id", "mainHistStats")
             .attr("transform","translate(0,18)");
-    drawStatsBox(main, plot, hist, mainHistStats,statsBoxWidth,0)
+    drawStatsBox(svg, plot, hist, mainHistStats,statsBoxWidth,0)
     if(plot.isTH1()) {
-        var statsBoxSize = main.select("#mainHistStats").node().getBBox();
+        var statsBoxSize = svg.select("#mainHistStats").node().getBBox();
         var deltaY = 18;
         for(var i=1; i < content.list.length; ++i) {
             deltaY += statsBoxSize.height;
@@ -1177,10 +1165,11 @@ function drawStats(main,content,plot) {
                 statsBox.append("g")
                     .attr("id", "histStats"+i)
                     .attr("transform","translate(0,"+(deltaY)+")");
-            drawStatsBox(main, new Plot(overlayHist), overlayHist, mainHistStats,statsBoxWidth,i)
-            statsBoxSize = main.select("#histStats"+i).node().getBBox();
+            drawStatsBox(svg, new Plot(overlayHist), overlayHist, mainHistStats,statsBoxWidth,i)
+            statsBoxSize = svg.select("#histStats"+i).node().getBBox();
         }    
     }
+    statsBox.attr("display","none");
     statsBox.append("text")
         .text("X ")
         .attr("dominant-baseline","hanging")
@@ -1191,7 +1180,7 @@ function drawStats(main,content,plot) {
         .attr("class","link")
         .on("click",function() {d3.select("#statsBox").attr("display","none")});
 }
-function drawStatsBox(main, plot, hist, statsBox, statsBoxWidth, no) {
+function drawStatsBox(svg, plot, hist, statsBox, statsBoxWidth, no) {
     var statsRect = statsBox.append("rect")
         .attr("width",statsBoxWidth)
         .attr("height",10)
@@ -1257,11 +1246,11 @@ function drawStatsBox(main, plot, hist, statsBox, statsBoxWidth, no) {
                 }
             }
         }
-        statsNamesBox = main.select("#"+statsBox.attr("id")).node().getBBox();
+        statsNamesBox = statsBox.node().getBBox();
         statsBoxHeight= statsNamesBox.y+statsNamesBox.height;
        
         var xDelta = 0; 
-        var statsValsBox = main.select("#statsVals").node().getBBox();
+        var statsValsBox = svg.select("#statsVals").node().getBBox();
           
         if(statsNamesBox.x > statsValsBox.x) {
             xDelta = statsValsBox.x - 30;
@@ -1278,14 +1267,14 @@ function drawStatsBox(main, plot, hist, statsBox, statsBoxWidth, no) {
         statsRect.attr("height", statsBoxHeight+2);
     }
     
-    var statsNamesBox = main.select("#statsNames").node().getBBox();
+    var statsNamesBox = svg.select("#statsNames").node().getBBox();
     var statsBoxHeight= statsNamesBox.y + statsNamesBox.height+18;
     if(plot.isTH2()) {
         statsNames
         .append("tspan")
          .attr("dy",15).attr("x",0)
          .text("integral");
-        statsNamesBox = main.select("#statsNames").node().getBBox();
+        statsNamesBox = svg.select("#statsNames").node().getBBox();
         statsBoxHeight= statsNamesBox.y + statsNamesBox.height+18;
         var pos = 0;
     
@@ -1327,9 +1316,9 @@ function drawStatsBox(main, plot, hist, statsBox, statsBoxWidth, no) {
             .attr("x", pos)
             .text(hist.bins.integral[2][i]);
             
-            pos = -(main.select("#integral").node().getBBox().width+10);
+            pos = -(svg.select("#integral").node().getBBox().width+10);
         }
-        statsRect.attr("height", statsBoxHeight+2+main.select("#integral").node().getBBox().height);
+        statsRect.attr("height", statsBoxHeight+2+svg.select("#integral").node().getBBox().height);
     }
 }
 function drawOverlay(plot, overlayPlot, stepBins, no) {
@@ -1392,17 +1381,19 @@ function drawOverlay(plot, overlayPlot, stepBins, no) {
         }
      });
 }
-function redraw(w,h) {
+function redrawCheck(prevZoomData, w, h) {
+    if(prevZoomData.json == null || (Math.abs(h - prevZoomData.h) < 5 && Math.abs(w - prevZoomData.w) < 5))
+        return;
+    prevZoomData.w = w;
+    prevZoomData.h = h;
+    redraw(prevZoomData, w, h);
+}
+function redraw(prevZoomData, w, h) {
     var start = new Date();
-    d3.select("#content").remove()
-    var json = JSON.parse('$JSON');
-    var div = 
-        d3.select("body")
-          .append("div")
-          .attr("id","content");
-    if(!w || !h)
-        w = h = 500;
-    drawHist(json, div, w, h, start);
+    var extJsonWinDiv = d3.select("#jsonPlotDiv");
+    extJsonWinDiv.select("svg").remove()
+    var svg = extJsonWinDiv.append("svg").attr("width",w).attr("height",h)
+    drawHist(prevZoomData.json, svg, w, h, start);
 }
 function draw(json) {
     var start = new Date();
@@ -1425,9 +1416,31 @@ function draw(json) {
         drawHist(json, div2, svgWidth/2, svgHeight/2, start);
     }
 }
-draw(JSON.parse('$JSON'));
-  			
-</script>
-</body>
-</html>
+function drawZoomPlot(dataUrl, prevZoomData, w, h) {
+    if(dataUrl == null || dataUrl == "" || w < 10 || h < 10)
+        return;
+	if(w == null && h == null) {
+		w = prevZoomData.w;
+		h = prevZoomData.h;
+	}
+	if(prevZoomData.url == dataUrl && Math.abs(h - prevZoomData.h) < 5 && Math.abs(w - prevZoomData.w) < 5)
+		return;
 
+    prevZoomData.w = w;
+    prevZoomData.h = h;
+	var extJsonWinDiv = d3.select("#jsonPlotDiv");
+	if(dataUrl != prevZoomData.url) {
+		d3.json(dataUrl, function(data) {
+		    extJsonWinDiv.selectAll("*").remove();
+            var svg = 
+                extJsonWinDiv.append("svg")
+                .attr("height",h)
+                .attr("width",w);
+			prevZoomData.url = dataUrl;
+			prevZoomData.json = data;
+			drawHist(data, svg , w, h, new Date());
+		})
+	} else {
+		redraw(prevZoomData,w,h);
+	}
+}

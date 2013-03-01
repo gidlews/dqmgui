@@ -85,8 +85,35 @@ function layoutimg(img, container, focus, onclick, ref, size, ob,
 	      + (ref != "object" ? ";ref=" + ref : "")
 	      + xargs;
   var url = imgref + param + sizeparam;
-  var jsonplainurl= jsonplainref + param + ";formatted=true;norm=1";
+  var jsonplainurl= jsonplainref + param /*+ ";formatted=1;norm=1"*/;
   var jsonurl  = jsonref + param+";norm=1";
+  if(img != null && img.parentNode != null && img.tagName != "" && img.rendered == null) {
+      var div = d3.select(img).style("width", img.width+"px").style("height", img.height+"px")
+                         
+      if(div.selectAll("svg")[0].length == 0) {
+          div.append("img")
+          .attr("src","/dqm/offline/static/loading.gif")
+          .attr("class","load")
+          .style("left", img.width/2+"px")
+          .style("top", (img.height/2+16)+"px")
+          var svg = div.append("svg")
+           .attr("width", img.width)
+           .attr("height", img.height)
+           .style("position","relative")
+          d3.text(jsonplainurl, function(data) {
+              try{
+                  var json = JSON.parse(data);
+                  drawMini(json, svg, img.width, img.height, new Date());
+                  div.selectAll("IMG").remove()
+                  img.rendered = true;
+              } catch(error) {
+                  div.selectAll("IMG").remove()
+                  drawErrorBox(svg, error, img.width, img.height, false)
+              }
+          })
+      }
+
+  }
   //TODO resonable way of constructing URLs... 
   img.setAttribute('alarm', ob.alarm); // attach the alarm property directly to the HTML img tag
   var border = ((ob.alarm && (nrows > 1 || ncols > 1))
@@ -99,14 +126,20 @@ function layoutimg(img, container, focus, onclick, ref, size, ob,
     img.src = url;	
     img.jsonsrc = jsonurl;	//jsonref
     img.jsonpuresrc = jsonplainurl;
+//    div.src = url;  
+//    div.jsonsrc = jsonurl;  //jsonref
+//    div.jsonpuresrc = jsonplainurl;
   }
   else if (img.src != url)
   {
     img.dqmsrc = url;
     img.jsonsrc = jsonurl; //jsonref;
     img.jsonpuresrc = jsonplainurl;
+//    div.dqmsrc = url;  
+//    div.jsonsrc = jsonurl;  //jsonref
+//    div.jsonpuresrc = jsonplainurl;
     GUI.ImgLoader.load(n+"."+row+"."+col, img, url, border, _IMG_BORDER_NEW);
-    if (img.src.replace(/\?.*/, "?") != imgref)
+    if (img.src != null && img.src.replace(/\?.*/, "?") != imgref)
       img.src = ROOTPATH + "/static/blank.gif";
     border = img.style.border;
   }
@@ -115,24 +148,25 @@ function layoutimg(img, container, focus, onclick, ref, size, ob,
     img.style.border = border;
 
   var title = ob.title || ob.name;
-  if (img.title != title)
-      img.title = title;
+  if (img.title != title) 
+      /*div.title = */img.title = title;
 
   if (img.getAttribute('dqmhelp') != ob.desc)
     img.setAttribute('dqmhelp', ob.desc);
 
   if (! img.onclick && onclick)
-    img.onclick = onclick;
+    /*div.onclick = */img.onclick = onclick;
 
   if (! img.ondblclick && onclick)
-    img.ondblclick = onclick;
+      /*div.ondblclick = */img.ondblclick = onclick;
 
   if (ob.name == focus && onclick)
     onclick({ target: img });
+//      onclick({ target: div });
 }
 
 // Layout one canvas item.
-function layout(type, container, item, obj, sz, ref, strip, focus, onclick, xstyle, n)
+function layout(type, container, item, obj, sz, ref, strip, focus, onclick, xstyle, n, d3Mode)
 {
   var size = _SIZEMAP[sz];
   var title;
@@ -151,7 +185,7 @@ function layout(type, container, item, obj, sz, ref, strip, focus, onclick, xsty
   {
     title = item.firstChild;
   }
-
+  
   // If it's a directory, show in compact form: title only.  The
   // server always gives directories first, only then plots.
   if (obj.dir)
@@ -213,6 +247,15 @@ function layout(type, container, item, obj, sz, ref, strip, focus, onclick, xsty
     var rowdiv = (row < item.childNodes.length - 1
 		  ? item.childNodes[row+1]
 		  : document.createElement("div"));
+    for(var i=rowdiv.childNodes.length-1; i!=-1; --i) {
+        if(d3Mode) {
+            if(rowdiv.childNodes[i].tagName != "DIV")
+                rowdiv.removeChild(rowdiv.childNodes[i]);
+        } else {
+            if(rowdiv.childNodes[i].tagName != "IMG")
+                rowdiv.removeChild(rowdiv.childNodes[i]);
+        }
+    }
     var rowparent = rowdiv.parentNode;
     var ncols = obj.items[row].length;
     var maxcols = ncols;
@@ -227,12 +270,39 @@ function layout(type, container, item, obj, sz, ref, strip, focus, onclick, xsty
     {
       var showref = "object";
       var ob = obj.items[row][col];
-      var img = (col < rowdiv.childNodes.length
+      var img, div;
+      if(d3Mode) {
+          if(col < rowdiv.childNodes.length
+              && rowdiv.childNodes[col].tagName == "DIV")
+              img = rowdiv.childNodes[col];
+          else {
+              img = document.createElement("div")
+              img.className = "plotDiv";
+          }
+//          img = document.createElement("img")
+      } else {
+          if(col < rowdiv.childNodes.length
+                  && rowdiv.childNodes[col].tagName == "IMG")
+              img = rowdiv.childNodes[col];
+          else {
+              img = document.createElement("img")
+          }
+//          div = document.createElement("div")
+      } 
+/*      var img = (col < rowdiv.childNodes.length
 	         ? rowdiv.childNodes[col]
 	         : document.createElement("img"));
-      if (! img.parentNode)
-        rowdiv.appendChild(img);
-
+      var div = (col < rowdiv.childNodes.length
+              ? rowdiv.childNodes[col]
+              : document.createElement("div"));*/
+//      div.id = "plot"+row+col;
+/*      if(d3Mode) {
+          if (! div.parentNode) //img
+            rowdiv.appendChild(div);//img
+      } else {*/
+      if (! img.parentNode) //img
+        rowdiv.appendChild(img);//img
+//      }
       var overlay = false;
       var xargs = "";
       if (ref.position == "overlay"
@@ -324,9 +394,18 @@ function layout(type, container, item, obj, sz, ref, strip, focus, onclick, xsty
           var img = (realcol < rowdiv.childNodes.length
 	             ? rowdiv.childNodes[realcol]
 	             : document.createElement("img"));
-          if (! img.parentNode)
-            rowdiv.appendChild(img);
-
+          var div = (realcol < rowdiv.childNodes.length
+                  ? rowdiv.childNodes[realcol]
+                  : document.createElement("div"));
+          if(d3Mode)
+              img.style.display = "inline";
+          /*if(d3Mode) {
+              if (! div.parentNode) //img
+                  rowdiv.appendChild(div); //img
+          } else {*/
+              if (! img.parentNode) //img
+                  rowdiv.appendChild(img); //img
+//          }
 	  ob.alarm = 0;
 	  if (ref.show == "customise" && ob.withref != "yes")
           {
@@ -383,7 +462,6 @@ function layout(type, container, item, obj, sz, ref, strip, focus, onclick, xsty
   setsizeclass(item, title, size, ref);
   return item;
 }
-
 GUI.Plugin.DQMCanvas = new function()
 {
   Ext.QuickTips.init();
@@ -414,7 +492,7 @@ GUI.Plugin.DQMCanvas = new function()
   var _zoomWin          = null;
   var _jsonWin          = null;
   var _jsonTab			= null;
-  this.getJsonWin = function() {return _jsonTab} //debug
+  var _zoomData         = {json : null, url : null, w : null, h : null}
   var _zoomlocal        = false;
   var _rootPath         = null;
 
@@ -436,10 +514,13 @@ GUI.Plugin.DQMCanvas = new function()
   var _click		= { event: null, timeout: null, timeClick: 0, timeDoubleClick: 0 };
 
   var _jsonDataButton   = null;
+  var _d3ModeButton   = null;
   var _jsonMode         = null;
+  var _d3Mode         = null;
   var _jsonModeChanged  = false;
 
-  this.switchJsonMode = function() {
+  this.switchJsonMode = function() 
+  {
 	_jsonMode = _jsonDataButton.pressed;
 	_jsonModeChanged = true;
 	if(_jsonDataButton.pressed)
@@ -447,7 +528,16 @@ GUI.Plugin.DQMCanvas = new function()
 	else
           _gui.makeCall(_url() + "/setJsonmode?mode=no")
   }
-
+  
+  this.switchD3Mode = function() 
+  {
+    _d3Mode = _d3ModeButton.pressed;
+    if(_d3ModeButton.pressed)
+      _gui.makeCall(_url() + "/setD3mode?mode=yes")
+    else
+      _gui.makeCall(_url() + "/setD3mode?mode=no")
+  }
+  
   this.onresize = function()
   {
     var h = _optsarea.clientHeight;
@@ -481,6 +571,11 @@ GUI.Plugin.DQMCanvas = new function()
     // Set help message.
     e = e || window.event;
     var hit = (e.srcElement || e.target);
+    if(hit.tagName != "IMG" && hit.tagName != "DIV") {
+        hit = Ext.get(hit).findParent("div")
+    }
+    // jakos dobrac się do diva..
+    
     var help = hit.getAttribute('dqmhelp');
     var titleabbrev = _sanitise(hit.title ? " " + hit.title.replace(/.*\//, "") : "");
     if (help)
@@ -567,7 +662,7 @@ GUI.Plugin.DQMCanvas = new function()
       });
 
       _map(_canvas.childNodes, function(node) {
-        var thishit = (node == hit.parentNode.parentNode);
+        var thishit = (hit.parentNode == null? true : (node == hit.parentNode.parentNode));
 	if (thishit && node.className.indexOf("picked") < 0)
 	  node.className += " picked";
 	else if (! thishit && node.className.indexOf("picked") >= 0)
@@ -640,6 +735,7 @@ GUI.Plugin.DQMCanvas = new function()
 
   this.focus = function(e)
   {
+      
     var hit = _self.dofocus(e);
     /* Update server if this was user-originated focus event.  Don't call back
        if we are setting focus internally, e.g. through server update. */
@@ -717,6 +813,12 @@ GUI.Plugin.DQMCanvas = new function()
                                        id : 'canvas-jsonData',
                                        enableToggle : true,
                                        pressed : _jsonMode || false });
+    _d3ModeButton = new Ext.Button({  text : 'D3',
+                                        toggleHandler : _self.switchD3Mode,
+                                        scope : _self,
+                                        id : 'canvas-d3',
+                                        enableToggle : true,
+                                        pressed : _d3Mode || false });
 
     tb.add({ text          : 'Size:' ,
 	     xtype         : 'tbtext' },
@@ -779,6 +881,7 @@ GUI.Plugin.DQMCanvas = new function()
 		      html: 'ROOT File'},
 	     hidden: true
 	   },
+	   _d3ModeButton,
 	   _jsonDataButton,
 	   linkmeAction
 	  );
@@ -1026,7 +1129,6 @@ GUI.Plugin.DQMCanvas = new function()
 	  }
 	}
       }
-
       var newClass = obj.className.replace(/size-[a-z]+/, size.className);
       if (obj.className != newClass)
 	obj.className = newClass;
@@ -1044,10 +1146,12 @@ GUI.Plugin.DQMCanvas = new function()
     _focusURL = '';
     _jsonURL = '';
     _jsonPureURL = '';
-
+    _d3Mode = data.d3 || false;
     _jsonMode = data.zoom.jsonmode || false;
     if (_jsonDataButton.pressed != data.zoom.jsonmode)
       _jsonDataButton.toggle(data.zoom.jsonmode, true);
+    if (_d3ModeButton.pressed != data.d3)
+        _d3ModeButton.toggle(data.d3, true);
 
     if (_linkMe)
     {
@@ -1063,13 +1167,11 @@ GUI.Plugin.DQMCanvas = new function()
     // and changes in scroll position.  Fill the canvas with the
     // shown objects.
     var item = null;
-
     for (var n = 0, item = _canvas.firstChild; n < _shown.length;
 	 ++n, item = item.nextSibling)
       item = layout("div", _canvas, item, _shown[n], _size,
 		    data.reference, data.strip, data.focus,
-		    this.focus, "", "div" + n);
-
+		    this.focus, "", "div" + n, _d3Mode);
     // Remove whatever is left of old contents.
     while (item)
     {
@@ -1162,7 +1264,7 @@ GUI.Plugin.DQMCanvas = new function()
       img.src = src;
   };
 
-  this.updateJsonWin = function() 
+  this.updateJsonWin = function(tab) 
   {
 	var src;
 	if (!_jsonURL || _jsonURL == '')
@@ -1170,15 +1272,18 @@ GUI.Plugin.DQMCanvas = new function()
 	else
 		src = _jsonURL;
 	// Prevent iframe from refreshing iframe...
-	if (Ext.get("jsonFrame") && Ext.get("jsonFrame").dom.src != src) 
-		Ext.get("jsonFrame").dom.src = src;
 	if (!_jsonPureURL || _jsonPureURL == '')
 		src = "";
 	else
-		src = _jsonPureURL;
+		src = _jsonPureURL + ";formatted=1;norm=1";
 	// Prevent iframe from refreshing iframe...
 	if (Ext.get("jsonFormFrame") && Ext.get("jsonFormFrame").dom.src != src) 
-		Ext.get("jsonFormFrame").dom.src = src;	
+		Ext.get("jsonFormFrame").dom.src = src;
+	
+    if(tab != null && tab.title == "Plot" && _jsonPureURL != "") {
+         drawZoomPlot(_jsonPureURL, _zoomData, tab.getInnerWidth(), tab.getInnerHeight())
+    }
+        
   };
   
   this.updateZoomPlot = function()
@@ -1189,9 +1294,9 @@ GUI.Plugin.DQMCanvas = new function()
     var winHeight = _zoomWin.getInnerHeight();
     current = current.replace(/;w=\d+/, ';w=' + winWidth);
     current = current.replace(/;h=\d+/, ';h=' + winHeight);
-    if ( (_jsonMode || _jsonMode == null)
-         && (Ext.get("jsonFrame") && Ext.get("jsonFrame").dom.src != _jsonURL) )
-      _self.updateJsonWin();
+    if ( (_jsonMode || _jsonMode == null) && _jsonPureURL != "" ) {
+      _self.updateJsonWin(_jsonTab.getActiveTab());
+    }
     _self.updateZoomImage(_zoomWin.body.dom.firstChild, winWidth, winHeight, current);
     if (title != _zoomWin.title)
       _zoomWin.setTitle(title);
@@ -1199,6 +1304,8 @@ GUI.Plugin.DQMCanvas = new function()
 
   this.drawZoom = function(data)
   {
+    _zoomWin.resumeEvents();
+    _jsonWin.resumeEvents();
     /* Update zoom window position and size from server, if server owns state.
        We don't update contents of the window here, that is done via focus. */
     var x = y = w = h = 0;
@@ -1254,7 +1361,7 @@ GUI.Plugin.DQMCanvas = new function()
     _zoomWin.setPosition(x, y);
     _jsonWin.setPosition(jx, jy);
     _jsonWin.setSize(jw, jh);
-
+    drawZoomPlot(_jsonPureURL, _zoomData, _jsonWin.getInnerWidth()-2,_jsonWin.getInnerHeight()-28)
     /* Always hide or show according to server state, but without events that
        are normally triggered by direct user interaction. */
     _zoomWin.suspendEvents();
@@ -1264,6 +1371,7 @@ GUI.Plugin.DQMCanvas = new function()
     _jsonWin.setVisible(data.show && data.jsonmode);
     _jsonWin.resumeEvents();
     _jsonModeChanged = false;
+    
   };
 
   this.zoomResize = function(panel, w, h)
@@ -1339,6 +1447,7 @@ GUI.Plugin.DQMCanvas = new function()
 			 }}]});
     _zoomWin.show(this);
     _zoomWin.setVisible(false);
+    
     _zoomWin.on('bodyresize', _self.zoomResize, _self);
     _zoomWin.on('beforehide', function() { _gui.makeCall(_url() + "/setZoom?show=no"); return false; }, _self);
     _zoomWin.on('move', _self.zoomMove, _self);
@@ -1349,17 +1458,21 @@ GUI.Plugin.DQMCanvas = new function()
     var tabPanel = new Ext.TabPanel(
 			{
 				activeTab : 0,
-				items : [
-						{
-							title : 'Data',
-							html : '<iframe width="100%" height="100%" id="jsonFrame" src="" />'
-						},
+				items :[
+                        {
+                            id:'Plot',
+                            title : 'Plot',
+                            html : '<div width="100%" height="100%" id="jsonPlotDiv"/>'
+                        },
 						{
 							title : 'Doc',
 							html : '<iframe width="100%" height="100%" id="jsonFormFrame" src="" />'
-						} ]
+						}
+                       ]
 			});
-    tabPanel.on("tabchange", function(panel, tab) {_self.updateJsonWin()})
+    tabPanel.on("tabchange", function(panel, tab) {
+        _self.updateJsonWin(tab);
+    })
     _jsonTab = tabPanel;
     _jsonWin = new Ext.Window(
         {
@@ -1367,15 +1480,11 @@ GUI.Plugin.DQMCanvas = new function()
             modal : false,
             id : 'jsonWin',
             title : 'json',
-            height : h,
-            width : w,
             resizable : true,
             shadow : false,
             closeAction : 'hide',
             style : {position : 'fixed'},
-//            html: '<iframe width="100%" height="100%" id="jsonFrame" src="" />',
-			items : [ tabPanel
-			],            
+			items : [ tabPanel ],            
             tools : [ {
                 id : 'close',
                 qtip : 'close',
@@ -1387,14 +1496,17 @@ GUI.Plugin.DQMCanvas = new function()
                 }
             }]
        });
+    _jsonTab.on('bodyresize', function(el, w, h) {
+        if(redraw && _jsonTab.getActiveTab()) {
+            redrawCheck(_zoomData, w, h);
+        }
+    }, _self);
+    
     _jsonWin.on('bodyresize', function(el, w, h) {
         if(w < 0 || h < 0) return;
         _gui.asyncCall(_url() + "/setJsonZoom?w=" + w + ';h=' +h);
-        
-        if(window.frames[1] && window.frames[1].redraw) {
-            window.frames[1].redraw(w - 10,h - 50);
-        }
-    }, _self);
+    }, _self);    
+   
     _jsonWin.on('move',  function(el, x, y) {
         if(x < 0 || y < 0) return;
         _gui.asyncCall(_url() + "/setJsonZoom?x=" + x + ';y=' +y);

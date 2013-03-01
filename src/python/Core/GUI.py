@@ -239,6 +239,8 @@ class Server:
     self._addJSFragment("%s/javascript/Core/sprintf.js" % self.contentpath)
     self._addJSFragment("%s/javascript/Core/Utils.js" % self.contentpath)
     self._addJSFragment("%s/javascript/Core/Core.js" % self.contentpath)
+    self._addJSFragment("%s/templates/d3.v2.tmpl" % self.contentpath) # temporary d3 source
+    self._addJSFragment("%s/templates/plot.tmpl" % self.contentpath) # temporary d3 source
 
     self.sessions = {}
     self.sessionthread = SessionThread(self.sessiondir)

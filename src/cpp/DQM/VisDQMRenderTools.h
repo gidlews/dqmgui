@@ -86,7 +86,7 @@ static string binsToArray(const TH1* const h)
     return contentList + ","+ errorList;
   else
     return contentList + ","
-        + arrayToJson(widthList, "width")+ ","+arrayToJson(lowEdgeList, "lowEdge")+","+ errorList;
+        + arrayToJson(widthList, "widthX")+ ","+arrayToJson(lowEdgeList, "lowEdgeX")+","+ errorList;
 }
 
 static string binsToArray(const TH2* const h)
@@ -94,6 +94,10 @@ static string binsToArray(const TH2* const h)
   string content = "";
   string widthX  = "";
   string widthY  = "";
+  string lowEdgeX  = "";
+  string lowEdgeY  = "";
+  //TODO: future will show which of width of lowEdge is more useful...
+
   Double_t** sum = new double*[2];
   sum[0] = new double[2];
   sum[1] = new double[2];
@@ -124,6 +128,7 @@ static string binsToArray(const TH2* const h)
     sum[1][0] += h->GetBinContent(i, 0);  // sum(1..Xlast) uy
     sum[1][2] += h->GetBinContent(i, Ylast + 1);  // sum(1..Xlast) oy
     widthX += StringFormat("%3,").arg(h->GetXaxis()->GetBinWidth(i));
+    lowEdgeX += StringFormat("%3,").arg(h->GetXaxis()->GetBinLowEdge(i));
     if(isWidthXDef && (h->GetXaxis()->GetBinWidth(i) != defWidthX))
       isWidthXDef = false;
   }
@@ -134,6 +139,7 @@ static string binsToArray(const TH2* const h)
     sum[0][1] += h->GetBinContent(0, j);        // sum(1..Ylast) ux
     sum[2][1] += h->GetBinContent(Xlast + 1, j); // sum(1..Ylast) ox
     widthY += StringFormat("%3,").arg(h->GetYaxis()->GetBinWidth(j));
+    lowEdgeY += StringFormat("%3,").arg(h->GetYaxis()->GetBinLowEdge(j));
     if(isWidthYDef && (h->GetYaxis()->GetBinWidth(j) != defWidthY))
       isWidthYDef = false;
     for (int i = h->GetXaxis()->GetFirst(); i != Xlast + 1; ++i)
@@ -147,9 +153,9 @@ static string binsToArray(const TH2* const h)
   content = arrayToJson(content, "content");
   string widthString = "";
   if(!isWidthXDef)
-    widthString += "," + arrayToJson(widthX, "widthX");
+    widthString += "," + arrayToJson(widthX, "widthX") + "," + arrayToJson(lowEdgeX, "lowEdgeX");
   if(!isWidthYDef)
-    widthString += "," + arrayToJson(widthY, "widthY");
+    widthString += "," + arrayToJson(widthY, "widthY") + "," + arrayToJson(lowEdgeY, "lowEdgeY");
   return integralToJson(sum) + "," + content + widthString;
 }
 
@@ -208,10 +214,13 @@ static string optionalTextValueToJson(const char* const name,
 {
   if (!value || value[0] == '\0' || value == defaultValue)
     return "";
+  string str (value);
+  boost::replace_all(str, "\"","\\\"");
+  boost::replace_all(str, "'","|");
   return StringFormat("%1'%2':'%3'")
       .arg(avoidComma ? "" : ",")
       .arg(name)
-      .arg(value);
+      .arg(str);
 }
 
 static string axisDataToJson(const TAxis* const h)
