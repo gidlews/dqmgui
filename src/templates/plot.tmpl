@@ -881,7 +881,7 @@ function drawAxis(main, svg, plot, hist) {
     
     organiseYLabels(svg, plot.y.min.value || plot.y.min)
     
-    yAxisArea.attr("transform", "translate(0,-1)")
+    yAxisArea.attr("transform", "translate(-1,-1)")
 /*    if(isTH1(hist.type) && content.dqmInfo.yAxis.type == "log") {
         var logLabel = svg.select("#yaxisscale")
                 .selectAll("text")[0];
