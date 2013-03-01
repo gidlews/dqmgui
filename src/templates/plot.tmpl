@@ -391,11 +391,11 @@ function drawMini(content, svg, width, height, start) {
         drawHist(content, svg, width*2, height*2, start);
 }
 //function drawHist(content, div, width, height, start) {
-function drawHist(content, svg, width, height, start) {
+function drawHist(content, svg, width, height, start, url) {
 
 	//height -= 20; width -= 20;
 //    var main = div.append("svg").style("display","relative")
-//    try {
+    try {
         var json = content.list[0];
         if(!(json.hist.type == "TH2" 
             || json.hist.type == "TProfile2D" 
@@ -458,9 +458,21 @@ function drawHist(content, svg, width, height, start) {
           .attr("font-size","7px")
           .attr("font-family","Arial")
           .attr("dominant-baseline","auto")//hanging
-/*    } catch (error) {
+          if(url != null)
+             svg.append("a")
+              .attr("id","edit")
+              .attr("xlink:href",url)
+              .attr("target","_black")
+              .attr("transform","translate("+width+","+(height - 3)+")")
+             .append("text")
+              .text("edit")
+              .attr("font-size","12px")
+              .attr("font-family","Arial")
+              .attr("dominant-baseline","auto")//hanging
+              .attr("text-anchor","end")
+    } catch (error) {
         drawErrorBox(svg, error, width, height, true)
-    }*/
+    }
 }
 function drawErrorBox(main, error, width, height, hide) {
     errorBox = main.append("g").attr("id","errorBox");
@@ -1388,12 +1400,12 @@ function redrawCheck(prevZoomData, w, h) {
     prevZoomData.h = h;
     redraw(prevZoomData, w, h);
 }
-function redraw(prevZoomData, w, h) {
+function redraw(prevZoomData, w, h, url) {
     var start = new Date();
     var extJsonWinDiv = d3.select("#jsonPlotDiv");
     extJsonWinDiv.select("svg").remove()
     var svg = extJsonWinDiv.append("svg").attr("width",w).attr("height",h)
-    drawHist(prevZoomData.json, svg, w, h, start);
+    drawHist(prevZoomData.json, svg, w, h, start, url);
 }
 function draw(json) {
     var start = new Date();
@@ -1438,9 +1450,9 @@ function drawZoomPlot(dataUrl, prevZoomData, w, h) {
                 .attr("width",w);
 			prevZoomData.url = dataUrl;
 			prevZoomData.json = data;
-			drawHist(data, svg , w, h, new Date());
+			drawHist(data, svg , w, h, new Date(), dataUrl.replace("jsonfairy","editfairy"));
 		})
 	} else {
-		redraw(prevZoomData,w,h);
+		redraw(prevZoomData,w,h, dataUrl.replace("jsonfairy","editfairy"));
 	}
 }
