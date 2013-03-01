@@ -1307,6 +1307,7 @@ private:
                 .arg(dqmInfoToJson(info));
     replacePseudoNumericValues(json);
     boost::replace_all(json, "'","\"");
+    boost::replace_all(json,"|","'");
 
     DataBlob tmp(json.begin(), json.end());
     jsondata = tmp;
