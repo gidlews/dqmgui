@@ -214,10 +214,14 @@ static string optionalTextValueToJson(const char* const name,
 {
   if (!value || value[0] == '\0' || value == defaultValue)
     return "";
+  string str (value);
+  //Replace single and double quotes with their HTML representations
+  boost::replace_all(str, "\"","&#148;");
+  boost::replace_all(str, "'","&#146;");
   return StringFormat("%1'%2':'%3'")
       .arg(avoidComma ? "" : ",")
       .arg(name)
-      .arg(value);
+      .arg(str);
 }
 
 static string axisDataToJson(const TAxis* const h)
