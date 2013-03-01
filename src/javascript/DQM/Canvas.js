@@ -90,13 +90,12 @@ function layoutimg(img, container, focus, onclick, ref, size, ob,
   if(img != null && img.parentNode != null && img.tagName != "" && img.rendered == null) {
       var div = d3.select(img).style("width", img.width+"px").style("height", img.height+"px")
                          
-      div.append("img")
-      .attr("src","/dqm/offline/static/loading.gif")
-      .attr("class","load")
-      .style("left", img.width/2+"px")
-      .style("top", (img.height/2+16)+"px")
-      
-      if(div.selectAll("svg")[0].length == 0) {      
+      if(div.selectAll("svg")[0].length == 0) {
+          div.append("img")
+          .attr("src","/dqm/offline/static/loading.gif")
+          .attr("class","load")
+          .style("left", img.width/2+"px")
+          .style("top", (img.height/2+16)+"px")
           var svg = div.append("svg")
            .attr("width", img.width)
            .attr("height", img.height)
