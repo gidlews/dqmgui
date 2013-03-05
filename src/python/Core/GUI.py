@@ -588,7 +588,12 @@ class Server:
           if getattr(s, 'jsonhook', None) == args[0]:
             data = s.getJson(*args[1:], **kwargs)
             template = self._maybeRefreshFile(self.templates, "editor")
-            variables = {};
+            variables = {
+                "PLOTJS"     : str(file("%s/templates/plot.tmpl" % self.contentpath).read()),
+                "CSS"        : str(file("%s/css/DQM/style.css" % self.contentpath).read()),
+                "JAVASCRIPT" : str(file("%s/templates/d3.v2.tmpl" % self.contentpath).read())
+                
+            };
             return str(Template(template, searchList=[variables]))
             break
         #if not found any...

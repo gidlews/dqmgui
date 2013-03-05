@@ -1396,9 +1396,9 @@ function drawOverlay(plot, overlayPlot, stepBins, no) {
 function redrawCheck(prevZoomData, w, h) {
     if(prevZoomData.json == null || (Math.abs(h - prevZoomData.h) < 5 && Math.abs(w - prevZoomData.w) < 5))
         return;
-    prevZoomData.w = w;
-    prevZoomData.h = h;
-    redraw(prevZoomData, w, h);
+    prevZoomData.w = w-2;
+    prevZoomData.h = h-1;
+    redraw(prevZoomData, w-2, h-1, prevZoomData.url.replace("jsonfairy","editfairy"));
 }
 function redraw(prevZoomData, w, h, url) {
     var start = new Date();
