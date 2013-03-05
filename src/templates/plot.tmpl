@@ -437,7 +437,7 @@ function drawHist(content, svg, width, height, start) {
                     overlayPlot.x.scale = plot.x.scale;
                     overlayPlot.x.setScaleLimit(plot.x.min.id, plot.x.max.id)
                     if(overlayHist.values.min != 0 || overlayHist.values.max != 0)
-                        drawOverlay(plot, overlayPlot, stepBins, i)
+                        drawOverlay(main, plot, overlayPlot, stepBins, i)
                 }
             }
         }
@@ -1321,7 +1321,7 @@ function drawStatsBox(svg, plot, hist, statsBox, statsBoxWidth, no) {
         statsRect.attr("height", statsBoxHeight+2+svg.select("#integral").node().getBBox().height);
     }
 }
-function drawOverlay(plot, overlayPlot, stepBins, no) {
+function drawOverlay(svg, plot, overlayPlot, stepBins, no) {
     var plotArea = svg.append("g").attr("id","overlay "+ no);
     plotArea.selectAll(".point").data(stepBins).enter().append("circle")
     .attr("class","point")
