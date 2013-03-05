@@ -85,9 +85,9 @@ function layoutimg(img, container, focus, onclick, ref, size, ob,
 	      + (ref != "object" ? ";ref=" + ref : "")
 	      + xargs;
   var url = imgref + param + sizeparam;
-  var jsonplainurl= jsonplainref + param /*+ ";formatted=1;norm=1"*/;
+  var jsonplainurl= jsonplainref + param + ";norm=1" /*+ ";formatted=1"*/;
   var jsonurl  = jsonref + param+";norm=1";
-  if(img != null && img.parentNode != null && img.tagName != "" && img.rendered == null) {
+  if(img != null && img.parentNode != null && img.tagName != "" && img.tagName == "DIV" && img.rendered == null) {
       var div = d3.select(img).style("width", img.width+"px").style("height", img.height+"px")
                          
       if(div.selectAll("svg")[0].length == 0) {
