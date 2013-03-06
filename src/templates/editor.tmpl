@@ -26,7 +26,7 @@
         width: 50%;
         border: 1px solid black;
       }
-      #preview {
+      #tmp{
           float: left;
           width: 49%;
           height: 550px;
@@ -45,9 +45,26 @@
     <h1>CodeMirror: DQM GUI rendering</h1>
     <textarea id=code name=code>
     </textarea>
-    <div id="preview"></div>
+    <div id="tmp">
+        <select id="loadPlugin"></select>
+        <div id="preview"></div>
+    </div>
     <script>
-   
+      var pluginList = ["https://raw.github.com/gidlews/plugin/master/def.js", "https://raw.github.com/gidlews/plugin/master/plot.js"]
+      d3.select("#loadPlugin").on("change",function() {
+          jQuery.getScript(this.value, function() {
+              editor.setValue(plugin.toString());
+              editor.removeLine(editor.lineCount()-1);
+              editor.removeLine(0);
+          });
+      })
+      for(var i in pluginList) {
+          d3.select("#loadPlugin").append("option")
+           .attr("id",i)
+           .text(pluginList[i])
+           .attr("value", pluginList[i])
+           
+      }
       var delay;
       // Initialize CodeMirror editor with a nice html5 canvas demo.
       var editor = CodeMirror.fromTextArea(document.getElementById('code'), {
@@ -61,14 +78,14 @@
       });
       foldFunc = CodeMirror.newFoldFunction(CodeMirror.braceRangeFinder);
       editor.on("gutterClick",foldFunc);
-      
+      var json;
       function updatePreview() {
         var previewDiv = document.getElementById('preview');
         d3.select(previewDiv).select("*").remove();
         var svg = d3.select(previewDiv).append("svg");
         d3.text(document.URL.replace("editfairy", "jsonfairy"), function(data) {
             try{
-                var json = JSON.parse(data);
+                json = JSON.parse(data);
                 eval(editor.getValue())
                 drawHist(json, svg , 500, 500, new Date())
             } catch(error) {
@@ -79,6 +96,7 @@
       
       var url = document.URL.replace("edit","plotjson");
       editor.setValue(document.getElementById("plotjs").innerHTML)
+      
       
       var cursor = editor.getSearchCursor("function");
       var funLineArray = []
