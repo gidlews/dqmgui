@@ -5809,7 +5809,7 @@ protected:
 
       if(jsPluginForPlot->count(x.name.string()) != 0)
           result +=
-                  StringFormat("'%1':'%2'")
+                  StringFormat(",'%1':'%2'")
                   .arg("script")
                   .arg(jsPluginForPlot->at(x.name.string()));
 
