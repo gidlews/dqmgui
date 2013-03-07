@@ -5780,7 +5780,7 @@ protected:
       return StringFormat("{'name':%1, 'desc':%2, 'location':\"%3\","
 			  " 'version':\"%4\", 'alarm':%5, 'live':%6,"
 			  " 'xaxis':%7, 'yaxis':%8, 'zaxis':%9,"
-			  " 'drawopts':%10, 'withref':%11}")
+			  " 'drawopts':%10, 'withref':%11 %12}")
 	.arg(stringToJSON(x.name.string(), true))
 	.arg(stringToJSON(x.desc, true))
 	.arg(StringFormat("%1/%2%3")
@@ -5794,7 +5794,25 @@ protected:
 	.arg(axisToJSON(x.drawopts.yaxis))
 	.arg(axisToJSON(x.drawopts.zaxis))
 	.arg(stringToJSON(x.drawopts.drawopts))
-	.arg(stringToJSON(x.drawopts.withref));
+	.arg(stringToJSON(x.drawopts.withref))
+    .arg(pluginInfoToJSON(x, sample));
+    }
+
+  static std::string
+  pluginInfoToJSON(const VisDQMShownItem &x, const VisDQMSample &/*sample*/)
+    {
+      //temporary placement of the map...
+      std::map<const std::string, const std::string>* jsPluginForPlot = new std::map<const std::string, const std::string>();
+      jsPluginForPlot->insert(std::pair<const std::string,const std::string>("CSC/Summary/Physics_ME1", "https://raw.github.com/gidlews/plugin/master/plot.js"));
+      std::string result = "";
+
+      if(jsPluginForPlot->count(x.name.string()) != 0)
+          result +=
+                  StringFormat("'%1':'%2'")
+                  .arg("script")
+                  .arg(jsPluginForPlot->at(x.name.string()));
+
+      return result;
     }
 
   static std::string
