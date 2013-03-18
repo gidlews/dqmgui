@@ -13,7 +13,6 @@ var _SIZES            =
 var _SIZESARRAY       = _map(_SIZES, function(x) { return [x.title, x.label]; });
 var _SIZEMAP	      = {};
 _map(_SIZES, function(x) { _SIZEMAP[x.label] = x; });
-
 // Resize an image to fit the canvas.
 function setsize(canvas, img, size, row, rows, col, cols)
 {
@@ -89,7 +88,7 @@ function layoutimg(img, container, focus, onclick, ref, size, ob,
   var jsonurl  = jsonref + param+";norm=1";
   if(img != null && img.parentNode != null && img.tagName != "" && img.tagName == "DIV" && img.rendered == null) {
       var div = d3.select(img).style("width", img.width+"px").style("height", img.height+"px")
-                         
+  
       if(div.selectAll("svg")[0].length == 0) {
           div.append("img")
           .attr("src","/dqm/offline/static/loading.gif")
@@ -103,12 +102,23 @@ function layoutimg(img, container, focus, onclick, ref, size, ob,
           d3.text(jsonplainurl, function(data) {
               try{
                   var json = JSON.parse(data);
-                  drawMini(json, svg, img.width, img.height, new Date());
-                  div.selectAll("IMG").remove()
+                  if(img != null && img.plugin != null) {
+                      if(img.plugin == "loading")
+                          _def.waitForScriptMini(img, div, json, svg, img.width, img.height, new Date())
+                      else {
+                          img.plugin.drawMini(json, svg, img.width, img.height, new Date());
+                          div.selectAll("IMG").remove()
+                      }
+                          
+                  } else {
+                      _def.drawMini(json, svg, img.width, img.height, new Date());
+                      div.selectAll("IMG").remove()
+                  }
+
                   img.rendered = true;
               } catch(error) {
                   div.selectAll("IMG").remove()
-                  drawErrorBox(svg, error, img.width, img.height, false)
+                  _def.drawErrorBox(svg, error, img.width, img.height, false)
               }
           })
       }
@@ -279,7 +289,6 @@ function layout(type, container, item, obj, sz, ref, strip, focus, onclick, xsty
               img = document.createElement("div")
               img.className = "plotDiv";
           }
-//          img = document.createElement("img")
       } else {
           if(col < rowdiv.childNodes.length
                   && rowdiv.childNodes[col].tagName == "IMG")
@@ -287,22 +296,21 @@ function layout(type, container, item, obj, sz, ref, strip, focus, onclick, xsty
           else {
               img = document.createElement("img")
           }
-//          div = document.createElement("div")
-      } 
-/*      var img = (col < rowdiv.childNodes.length
-	         ? rowdiv.childNodes[col]
-	         : document.createElement("img"));
-      var div = (col < rowdiv.childNodes.length
-              ? rowdiv.childNodes[col]
-              : document.createElement("div"));*/
-//      div.id = "plot"+row+col;
-/*      if(d3Mode) {
-          if (! div.parentNode) //img
-            rowdiv.appendChild(div);//img
-      } else {*/
-      if (! img.parentNode) //img
-        rowdiv.appendChild(img);//img
-//      }
+      }
+      if(obj.items[row][col].script != null) {
+          img.script = obj.items[row][col].script
+          if(img.plugin == null)
+              img.plugin = "loading";
+              YAHOO.util.Get.script(img.script, {
+                  data: {node: img},
+                  onSuccess: function(obj) {
+                      obj.data.node.plugin = new plugin();
+                  }
+              })
+      }
+          
+      if (! img.parentNode) 
+        rowdiv.appendChild(img);
       var overlay = false;
       var xargs = "";
       if (ref.position == "overlay"
@@ -486,8 +494,10 @@ GUI.Plugin.DQMCanvas = new function()
   var _customlocal	= false;
   var _focus		= null;
   var _focusURL         = '';
-  var _jsonURL         = '';
-  var _jsonPureURL	   = '';
+  var _jsonURL          = '';
+  var _jsonPureURL	    = '';
+  var _hit              = null;
+  this.hit = function() {return _hit;} //remove
   var _linkMe           = null;
   var _zoomWin          = null;
   var _jsonWin          = null;
@@ -574,6 +584,7 @@ GUI.Plugin.DQMCanvas = new function()
     if(hit.tagName != "IMG" && hit.tagName != "DIV") {
         hit = Ext.get(hit).findParent("div")
     }
+    _hit = hit;
     // jakos dobrac się do diva..
     
     var help = hit.getAttribute('dqmhelp');
@@ -684,6 +695,7 @@ GUI.Plugin.DQMCanvas = new function()
       _focusURL = url;
       _jsonURL = jsonUrl;
       _jsonPureURL = jsonPureUrl;
+      _hit = hit;
     }
     else
     {
@@ -1279,9 +1291,15 @@ GUI.Plugin.DQMCanvas = new function()
 	// Prevent iframe from refreshing iframe...
 	if (Ext.get("jsonFormFrame") && Ext.get("jsonFormFrame").dom.src != src) 
 		Ext.get("jsonFormFrame").dom.src = src;
-	
     if(tab != null && tab.title == "Plot" && _jsonPureURL != "") {
-         drawZoomPlot(_jsonPureURL, _zoomData, tab.getInnerWidth(), tab.getInnerHeight())
+        if(_hit != null && _hit.plugin != null) {
+            if(_hit.plugin == "loading")
+                _def.waitForScript(_hit, _jsonPureURL, _zoomData, tab.getInnerWidth(), tab.getInnerHeight())
+            else
+                _hit.plugin.drawZoomPlot(_jsonPureURL, _zoomData, tab.getInnerWidth(), tab.getInnerHeight())
+        }
+        else
+            _def.drawZoomPlot(_jsonPureURL, _zoomData, tab.getInnerWidth(), tab.getInnerHeight())
     }
         
   };
@@ -1361,7 +1379,14 @@ GUI.Plugin.DQMCanvas = new function()
     _zoomWin.setPosition(x, y);
     _jsonWin.setPosition(jx, jy);
     _jsonWin.setSize(jw, jh);
-    drawZoomPlot(_jsonPureURL, _zoomData, _jsonWin.getInnerWidth()-2,_jsonWin.getInnerHeight()-28)
+    if(_hit != null && _hit.plugin != null) {
+            if(_hit.plugin == "loading") {
+                _def.waitForScript(_hit, _jsonPureURL, _zoomData, _jsonWin.getInnerWidth()-2,_jsonWin.getInnerHeight()-28)
+            } else
+                _hit.plugin.drawZoomPlot(_jsonPureURL, _zoomData, _jsonWin.getInnerWidth()-2,_jsonWin.getInnerHeight()-28)
+    } else {
+        _def.drawZoomPlot(_jsonPureURL, _zoomData, _jsonWin.getInnerWidth()-2,_jsonWin.getInnerHeight()-28)
+    }
     /* Always hide or show according to server state, but without events that
        are normally triggered by direct user interaction. */
     _zoomWin.suspendEvents();
@@ -1497,8 +1522,10 @@ GUI.Plugin.DQMCanvas = new function()
             }]
        });
     _jsonTab.on('bodyresize', function(el, w, h) {
-        if(redraw && _jsonTab.getActiveTab()) {
-            redrawCheck(_zoomData, w, h);
+        if(_hit != null && _hit.plugin!= null && _hit.plugin!="loading" &&  _jsonTab.getActiveTab()) {
+            _hit.plugin.redrawCheck(_zoomData, w, h);
+        } else {
+            _def.redrawCheck(_zoomData, w, h);
         }
     }, _self);
     

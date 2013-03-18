@@ -591,6 +591,8 @@ class Server:
             variables = {
                 "PLOTJS"     : str(file("%s/templates/plot.tmpl" % self.contentpath).read()),
                 "CSS"        : str(file("%s/css/DQM/style.css" % self.contentpath).read()),
+                "YAHOO"      : str(file("%s/yahoo/yahoo.js" % self._yui).read()),
+                "UTIL"       : str(file("%s/utilities/utilities.js" % self._yui).read()),
                 "JAVASCRIPT" : str(file("%s/templates/d3.v2.tmpl" % self.contentpath).read())
                 
             };
