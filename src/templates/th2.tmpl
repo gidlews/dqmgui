@@ -503,6 +503,18 @@ function drawHist(content, div, width, height, start) {
       .attr("font-size","7px")
       .attr("font-family","Arial")
       .attr("dominant-baseline","auto")//hanging
+      
+     main.append("a")
+      .attr("id","edit")
+      .attr("xlink:href",document.URL.replace("plotjsonfairy","editfairy"))
+      .attr("target","_black")
+      .attr("transform","translate("+svgWidth+","+(svgHeight - 3)+")")
+     .append("text")
+      .text("edit")
+      .attr("font-size","12px")
+      .attr("font-family","Arial")
+      .attr("dominant-baseline","auto")//hanging
+      .attr("text-anchor","end")
 //     alert(new Date() - start)
 }
 function drawTitleArea(main, hist, plot) {

@@ -5803,7 +5803,7 @@ protected:
     {
       //temporary placement of the map...
       std::map<const std::string, const std::string>* jsPluginForPlot = new std::map<const std::string, const std::string>();
-      jsPluginForPlot->insert(std::pair<const std::string,const std::string>("CSC/Summary/Physics_ME1", "https://raw.github.com/gidlews/plugin/master/plot.js"));
+      jsPluginForPlot->insert(std::pair<const std::string,const std::string>("CSC/Summary/Physics_ME1", "https://raw.github.com/gidlews/plugin/master/plot2.js"));
       std::string result = "";
 
       if(jsPluginForPlot->count(x.name.string()) != 0)

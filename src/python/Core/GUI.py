@@ -571,6 +571,44 @@ class Server:
 
     self._noResponseCaching()
     return str(e);    
+
+# -----------------------------------------------------------------
+  @expose
+  def editfairy(self, *args, **kwargs):
+    """General session-independent access path for json representation
+    of plot. The first subdirectory argument contains the name of the
+    'source json hook' able to handle the json request.  In case of
+    value of argument 'formatted' = true insread of pure JSON whole
+    HTML page is returned.  The rest of the processing is given over
+    to the hook."""
+
+    try:
+      if len(args) >= 1:
+        for s in self.sources:
+          if getattr(s, 'jsonhook', None) == args[0]:
+            data = s.getJson(*args[1:], **kwargs)
+            template = self._maybeRefreshFile(self.templates, "editor")
+            variables = {
+                "PLOTJS"     : str(file("%s/templates/plot.tmpl" % self.contentpath).read()),
+                "CSS"        : str(file("%s/css/DQM/style.css" % self.contentpath).read()),
+                "YAHOO"      : str(file("%s/yahoo/yahoo.js" % self._yui).read()),
+                "UTIL"       : str(file("%s/utilities/utilities.js" % self._yui).read()),
+                "JAVASCRIPT" : str(file("%s/templates/d3.v2.tmpl" % self.contentpath).read())
+                
+            };
+            return str(Template(template, searchList=[variables]))
+            break
+        #if not found any...
+        return 'JSON format of '+args[0]+' source plot is not supported yet.';
+    except Exception, e:
+      o = StringIO()
+      traceback.print_exc(file=o)
+      log("WARNING: unable to produce a json: "
+          + (str(e) + "\n" + o.getvalue()).replace("\n", " ~~ "),
+          severity=logging.WARNING)
+
+    self._noResponseCaching()
+    return str(e);
       
   @expose
   def plotjsonfairy(self, *args, **kwargs):
