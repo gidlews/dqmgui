@@ -1,4 +1,4 @@
-//window.onerror = _pageErrorHandler;
+window.onerror = _pageErrorHandler;
 
 var GUI = new function()
 {
@@ -246,11 +246,11 @@ var GUI = new function()
 
   this.updateState = function(o)
   {
-/*    try
-    {*/
+    try
+    {
       GUI.ImgLoader.reset();
       _gui.performUpdateState(o);
-/*    }
+    }
     catch (err)
     {
       var fileName = (err.fileName ? err.fileName.replace(/.*\//, ".../") : "(unknown)");
@@ -261,7 +261,7 @@ var GUI = new function()
         + err.name + ", " + err.message
 	+ " at " + fileName + lineNumber + "</span>";
       _progressimg.className = "internal-error";
-    }*/
+    }
   };
 
   this.performUpdateState = function(o)
