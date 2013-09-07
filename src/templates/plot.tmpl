@@ -389,58 +389,6 @@ var _def = new function() {
             this.bins.defWidthY = (hist.yaxis.last.value - hist.yaxis.first.value) / this.bins.yLen();
     }
 
-<<<<<<< HEAD
-	//height -= 20; width -= 20;
-//    var main = div.append("svg").style("display","relative")
-//    try {
-        var json = content.list[0];
-        if(!(json.hist.type == "TH2" 
-            || json.hist.type == "TProfile2D" 
-            || json.hist.type == "TH1"
-            || json.hist.type == "TProfile"))
-            return;
-        var vertMargin = Math.min(Math.max(height/10, 40), 60),
-            horiMargin = Math.min(Math.max(width/10, 35), 60);
-        var plot = new Plot(json.hist);
-        plot.area.margin = {
-                top: 60,
-                right: horiMargin, 
-                bottom: vertMargin, 
-                left: horiMargin
-            };
-        svg
-        .attr("width", width)
-        .attr("height", height)
-     
-        drawTitleArea(svg, json.hist, plot, width)
-        
-        main = svg
-               .append("g")
-               .attr("transform", "translate(" + plot.area.margin.left + "," + plot.area.margin.top + ")");
-        
-        plot.area.width = width - plot.area.margin.left - plot.area.margin.right;
-        plot.area.height = height - plot.area.margin.top - plot.area.margin.bottom;
-        plot.dqm = content.dqmInfo;
-        prepareAxis(main,svg,plot,json.hist);
-        drawAxis(main,svg,plot,json.hist);
-        if(plot.isTH2()) {
-            drawTH2bins(main,json.hist, plot);
-        } else {
-            var stepBins = drawTH1bins(main, json.hist, plot);
-            if(content.list.length > 1) {
-                for(var i=1; i < content.list.length; ++i) {
-                    var overlayHist = content.list[i].hist;
-                    var overlayPlot = new Plot(content.list[i].hist)
-                    overlayPlot.x.scale = plot.x.scale;
-                    overlayPlot.x.setScaleLimit(plot.x.min.id, plot.x.max.id)
-                    if(overlayHist.values.min != 0 || overlayHist.values.max != 0)
-                        drawOverlay(main, plot, overlayPlot, stepBins, i)
-                }
-            }
-        }
-        drawStats(svg, content, plot, width);
-        main.attr("transform", "translate(" + plot.area.margin.left + "," + (plot.area.margin.top) + ")");
-=======
     this.waitForScriptMini = function(img, div, content, svg, width, height, start) {
         setTimeout(function() {
             if(img.plugin == "loading")
@@ -452,13 +400,11 @@ var _def = new function() {
             
         }, 1000)
     }
->>>>>>> jsEditor
 
     this.drawMini = function(content, svg, width, height, start) {
             svg = svg.append("g").attr("transform","scale(0.5)");
             self.drawHist(content, svg, width*2, height*2, start);
     }
-    //function drawHist(content, div, width, height, start) {
 
     this.drawErrorBox = function(main, error, width, height, hide) {
         errorBox = main.append("g").attr("id","errorBox");
@@ -516,162 +462,6 @@ var _def = new function() {
             node.append("tspan").text(text);
     }
 
-<<<<<<< HEAD
-function formatTitle(node, text) {
-    var leftBracketPos = text.search(/\^{|_{/)
-    if(leftBracketPos != -1) {
-        var restOfText = formatSubAndSuperScript(node.append("tspan"), text, 1);
-    }
-    else
-        node.append("tspan").text(text);
-}
-
-function formatSubAndSuperScript(node, text, iter) {
-    var lb = text.search(/\^{|_{/); // position beginning of sub/superscript "_{" or "^{"; 
-    var rb = text.search(/}/);// position of right bracket - (propably) end of sub/superscript "}"
-    var slb = text.indexOf("{"); // position of simple left bracket "{"
-    var nb = 0; //neutral brachets counter
-    var restOfText = text;
-    while(restOfText != "") {
-        if(lb != -1 && lb < rb) {
-            if(slb != -1 && slb < lb) {
-                nb++;
-            }
-            node.append("tspan").text(text.substring(0,lb));
-            var tspan =
-             node.append("tspan")
-             .attr("dy", (text[lb] == '_' ? "0.8em" : "-0.5em"))
-             .attr("font-size","0.75em")
-            restOfText = formatSubAndSuperScript(tspan, text.substring(lb+2), iter+1)
-            node.append("tspan")
-                .attr("font-size","0.75em")
-                .attr("dy", (text[lb] == '_' ? "-0.8em" : "0.5em"))
-                .text("_")
-                .attr("dx", "-0.65em")
-                .attr("fill","none");
-        } else {
-            if(rb != -1) {
-                if(slb != -1 && slb < rb) { // there are brackets {...} not related to sub/superscript
-                    node.append("tspan")
-                     .text(text.substring(0, slb+1))
-                    restOfText = text.substring(slb+1)
-                    nb++;
-                } else {
-                    if(nb!= 0) {
-                       //right bracket is neutral one
-                        node.append("tspan")
-                        .text(text.substring(0, rb+1))
-                       restOfText = text.substring(rb+1)
-                       nb--;
-                    } else {
-                        if(text.substring(0, rb) != "")
-                            node.append("tspan")
-                            .text(text.substring(0, rb));
-                        return text.substring(rb+1);                        
-                    }
-                }
-            } else {
-                node.append("tspan").text(restOfText);
-                return "";
-            }
-        }
-        lb = restOfText.search(/\^{|_{/)
-        rb = restOfText.search(/}/)
-        slb = restOfText.indexOf("{"); // position of simple left bracket "{"
-        text = restOfText;
-    }
-    return restOfText;
-}
-function drawTitleArea(main, hist, plot, width) {
-    var titleHeight = 0;
-    if(hist.title) {
-        var title = main.append("g")
-            .attr("id","title")
-            .attr("transform","translate(0,-5)")
-         .append("text")
-            .attr("class","title")
-            .attr("dominant-baseline","hanging")
-            .attr("text-anchor","begin")
-
-        formatTitle(title, hist.title)
-        
-        title.selectAll("tspan")
-            .attr("dominant-baseline","hanging")
-            .attr("text-anchor","begin");
-
-        for(var size=1; size>0; size-=0.1) {
-            var titleBox = main.select("#title").node().getBBox();
-            if(titleBox.width < (width - 100) && (titleBox.height + titleBox.y) < plot.area.margin.top) {
-                plot.area.margin.bottom += plot.area.margin.top - (titleBox.height + 5);
-                plot.area.margin.top = titleBox.height + 5;
-                break;
-            }
-            title.attr("transform", "scale("+size+")");            
-        }
-        var titleBox = main.select("#title").node().getBBox();
-        if(titleBox.y < 0)
-            main.select("#title").attr("transform","translate(0,"+-titleBox.y+")")
-        titleHeight = main.select("#title").select("text").node().getBBox().height
-        titleWidth = main.select("#title").select("text").node().getBBox().width
-    } else {
-        plot.area.margin.bottom += plot.area.margin.top - 10;
-        plot.area.margin.top = 10;
-    }
-    var statsBoxWidth = 100;
-    var statsLabel = 
-            main.append("g")
-             .attr("id", "stats")
-             .attr("transform","translate(" + (width - statsBoxWidth) + "," + 0 + ")")
-             .on("click",function() {
-                 if(main.select("#statsBox").attr("display") == "none")
-                     main.select("#statsBox").attr("display","block");
-                 else
-                     main.select("#statsBox").attr("display","none");
-             }) //
-    statsLabel.append("rect")
-        .attr("width",statsBoxWidth)
-        .attr("height",titleHeight)
-        .attr("fill","white")
-        .attr("class","link")
-//      .attr("stroke","black")
-//      .attr("stroke-width", 2);
-        
-    statsLabel.append("text")
-        .text("Stats")
-        .attr("class","link")
-        .attr("dominant-baseline","middle")
-        .attr("text-anchor","middle")
-        .attr("transform","translate("+statsBoxWidth/2+","+titleHeight/2+")");
-}
-function drawXLabels(main, hist, plot) {
-    var gLabels = main.select("#xaxisscale")
-    var oldLabel = main.select("#xaxisscale").select("text");
-    main.select("#xaxisscale")
-         .selectAll("text").remove();
-    var xAxisBox = main.select("#xaxis").node().getBBox();
-    var labelsPosition =  (xAxisBox.y+ xAxisBox.height);
-    xLabels = gLabels.selectAll(".label")
-    .data(hist.xaxis.labels)
-    .enter().append("text")
-        .text(function(d) {return d.value;})
-        .attr("class","label")
-        .attr("text-anchor","middle")//begin
-        .attr("dominant-baseline","hanging")//middle
-        .attr("x", function(d){return plot.x.scale(d.center);})
-        .attr("y", 6)
-        .attr("fill",function(d){if(!plot.x.isInDomain(d.center)) {return "white"} else {return "black"}})
-    for(var i = 1; i != gLabels.selectAll(".label")[0].length; ++i) {
-        var firstLabel = gLabels.selectAll(".label")[0][i-1].getBBox();
-        var secondLabel = gLabels.selectAll(".label")[0][i].getBBox();
-        if(Math.abs(firstLabel.x + firstLabel.width) > Math.abs(secondLabel.x)) {
-             gLabels.selectAll(".label").each(function() {
-                 d3.select(this)
-                  .attr("text-anchor","begin")
-                  .attr("dominant-baseline","middle")                      
-                  .attr("transform",  " translate("+0+","+0+")" + "rotate("+90+" "+(d3.select(this).attr("x")-3)+","+9+")");
-             })
-            break;
-=======
     this.formatSubAndSuperScript = function(node, text, iter) {
         var lb = text.search(/\^{|_{/); // position beginning of sub/superscript "_{" or "^{";
         var rb = text.search(/}/);// position of right bracket - (propably) end of sub/superscript "}"
@@ -762,7 +552,6 @@ function drawXLabels(main, hist, plot) {
         } else {
             plot.area.margin.bottom += plot.area.margin.top - 10;
             plot.area.margin.top = 10;
->>>>>>> jsEditor
         }
         var statsBoxWidth = 100;
         var statsLabel = 
@@ -1028,146 +817,7 @@ function drawXLabels(main, hist, plot) {
             }
         }
     }
-<<<<<<< HEAD
-}
-function drawAxis(main, svg, plot, hist) {
-    var xAxis = d3.svg.axis()
-    .scale(plot.x.scale)
-    .orient("bottom");
-    if(plot.isTH2() && plot.x.max.id - plot.x.min.id < 10) 
-        xAxis.ticks(plot.x.max.id - plot.x.min.id +1)
-    if(hist.xaxis.labels) {
-        xAxis.ticks(plot.x.max.id - plot.x.min.id);
-    } else {
-        xAxis.tickFormat(d3.format("s"));
-    }
-   
-    var xAxisArea =
-        main.append("g")
-        .attr("class", "x axis")
-        .attr("id","xaxis");
-    xAxisArea
-     .append("g")
-     .attr("id","xaxisscale")
-     .call(xAxis);
-    xAxisArea.attr("transform", "translate(0," + (plot.area.height +1)+ ")")
-    if(hist.xaxis.labels) 
-        drawXLabels(svg,hist,plot);  
-    else 
-        organiseXLabels(svg, plot.x.min.value);
 
-    var downSize = 0;
-    if(hist.xaxis.title) {
-        var xAxisBox = svg.select("#xaxis").node().getBBox();
-        var xtitle = svg.select("#xaxis").append("text")
-            .attr("transform","translate("+(plot.area.width )+", "+(xAxisBox.y+ xAxisBox.height)+")")
-            .attr("text-anchor","end")
-            .attr("dominant-baseline","hanging")            
-            .attr("id","xtitle")
-            .attr("class","axistitle")
-            .attr("x",0)
-            .attr("y",0);
-        formatTitle(xtitle, hist.xaxis.title)
-        svg.select("#xtitle").select("tspan")
-        .attr("dy",svg.select("#xtitle").node().getBBox().height)
-
-        var transformString = svg.select("#xtitle").attr("transform");
-        for (var i = 0; i<5 &&(hist.xaxis && hist.xaxis.title && svg.select("#xtitle").node().getBBox().width*(1-downSize)  > plot.area.height); ++i) {
-            downSize += 0.1;
-            svg.select("#xtitle").attr("transform", transformString  + " scale("+(1-downSize)+")");
-        }
-    }
-    var xAxisBox = main.select("#xaxis").node().getBBox();
-    if(xAxisBox.height > plot.area.margin.bottom) {
-        var yDelta = (xAxisBox.height - plot.area.margin.bottom) + 10;
-        if(yDelta > plot.area.height*  0.6) {
-            yDelta = plot.area.height*  0.6;
-            if(hist.xaxis.title) {
-                svg.select("#xtitle").attr("transform", "translate("+plot.area.width +","+(plot.area.margin.bottom + yDelta - svg.select("#xtitle").node().getBBox().height ) + ") scale("+(1-downSize)+")");
-            }
-        }
-        plot.area.height -= yDelta;
-        plot.y.scale.range([plot.area.height, 0])
-        if(plot.isTH2())
-            plot.z.scale.range([plot.area.height, 0])
-        plot.area.margin.bottom += yDelta;
-        main.select("#xaxis").attr("transform", "translate(0," + (plot.area.height +1)+ ")")
-    }
-
-    var yAxis = d3.svg.axis()
-        .scale(plot.y.scale)
-        .orient("left");
-    if(plot.isTH2()  && plot.y.max.id - plot.y.min.id < 10)
-        yAxis.ticks(plot.y.max.id - plot.y.min.id + 1)
-    if(plot.isTH2() && hist.yaxis.labels) {
-        yAxis.ticks(plot.y.max.id - plot.y.min.id); 
-    } else {
-        yAxis.tickFormat(d3.format("s"));
-    }
-    var s = d3.format("s");
-    var yAxisArea = main.append("g")
-        .attr("class", "y axis")
-        .attr("id","yaxis")
-    yAxisArea
-    .append("g")
-    .attr("id","yaxisscale")
-    .call(yAxis);
-    organiseYLabels(svg, plot.y.min.value || plot.y.min)
-    
-    yAxisArea.attr("transform", "translate(-1,-1)")
-    if(plot.isTH2() &&  hist.yaxis.labels) {
-        var gLabels = svg.select("#yaxisscale")
-        svg.select("#yaxisscale")
-             .selectAll("text").remove();
-        var labelsPosition =  (svg.select("#yaxisscale").node().getBBox().x);
-        yLabels = gLabels.selectAll(".label")
-        .data(hist.yaxis.labels)
-        .enter().append("text")
-            .text(function(d) {if(plot.y.isInDomain(d.center)) return d.value;})
-            .attr("class","label")
-            .attr("text-anchor","end")
-            .attr("dominant-baseline","middle")         
-            .attr("transform",function(d) {return "translate("+(labelsPosition-5)+","+plot.y.scale(d.center)+")"+" rotate(0)"});
-    }
-    var transformString = "";
-    if(hist.yaxis && hist.yaxis.title) {
-        var ytitle = svg.select("#yaxis").append("g").attr("id","ytitle").append("text")
-//            .text(hist.yaxis.title)
-            .attr("transform","translate("+
-                    /*(svg.select("#yaxis").node().getBBox().x)*/0+", 0)  rotate(-90)")
-            .attr("text-anchor","end")
-            .attr("class","axistitle")
-            .attr("id","ytitle")
-            .attr("x",-10)
-            .attr("y",0);
-        formatTitle(ytitle, hist.yaxis.title)
-        var ylabelBox = svg.select("#yaxisscale").node().getBBox();
-        svg.select("#ytitle").select("tspan")
-          .attr("dy", -(svg.select("#ytitle").node().getBBox().width+ ylabelBox.width-5));
-        transformString = " "+svg.select("#ytitle").attr("transform")
-    }
-    var downSize = 0;
-    var titleBox = svg.select("#title").select("text").node().getBBox();
-    //try only 5 times to corect it if not possible leave it
-    var scaleString = " scale(1)";
-    var i;
-    for (i = 0; i<5 &&(hist.yaxis && hist.yaxis.title && svg.select("#ytitle").node().getBBox().height*(1-downSize)  > plot.area.height
-            || svg.select("#yaxis").node().getBBox().width > plot.area.margin.left); ++i) {
-        if(hist.yaxis && hist.yaxis.title && svg.select("#ytitle").node().getBBox().height*(1-downSize) > plot.area.height) {
-            scaleString = "scale("+(1-downSize)+")";
-            svg.select("#ytitle").attr("transform", transformString  + scaleString);
-        }
-        if(svg.select("#yaxis").node().getBBox().width > plot.area.margin.left) {
-            svg.select("#yaxisscale").selectAll("text").style("font-size", (1-downSize)+"em");
-            if(ytitle) {
-                scaleString = "scale("+(1-downSize)+")";
-                svg.select("#ytitle").attr("transform", /*transformString +*/ scaleString);
-                var ylabelBox = svg.select("#yaxisscale").node().getBBox();
-                svg.select("#ytitle")
-                .attr("transform", /*transformString + */scaleString)
-                .select("tspan")
-                .attr("dy", -svg.select("#ytitle").node().getBBox().width/2 - ylabelBox.width)
-=======
     this.drawAxis = function(main, svg, plot, hist) {
         var xAxis = d3.svg.axis()
         .scale(plot.x.scale)
@@ -1308,48 +958,9 @@ function drawAxis(main, svg, plot, hist) {
                     .select("tspan")
                     .attr("dy", -svg.select("#ytitle").node().getBBox().width/2 - ylabelBox.width)
                 }
->>>>>>> jsEditor
             }
             downSize += 0.1;
         }
-<<<<<<< HEAD
-        downSize += 0.1;
-    }
-    if(hist.yaxis && hist.yaxis.title && svg.select("#ytitle").node().getBBox().height*(1-downSize)  > plot.area.height
-            || svg.select("#yaxis").node().getBBox().width > plot.area.margin.left) {
-        svg.select("#ytitle").attr("transform", "translate(-"+(plot.area.margin.left-svg.select("#ytitle").node().getBBox().width/2)    +",0)" + scaleString)
-    }
-
-    var xTitleSize = 1.5;
-    var xLabelSize = 10;
-    var xTickSize = 6;
-    var i;
-    for (i = 0; i<5 &&(svg.select("#xaxis").node().getBBox().width > plot.area.width
-            || svg.select("#xaxis").node().getBBox().height > plot.area.margin.bottom); ++i) {
-        if(hist.xaxis.title && svg.select("#xtitle").node().getBBox().width > plot.area.width) {
-            xTitleSize =xTitleSize*plot.area.width/svg.select("#xtitle").node().getBBox().width - 0.05;
-            xtitle.style("font-size", xTitleSize+"em");
-        }
-        if(svg.select("#xaxis").node().getBBox().height > plot.area.margin.bottom) {
-            xLabelSize -= 1;
-            xTickSize -= 0.5;
-            svg.select("#xaxis").selectAll(".tick")
-              .attr("y2",xTickSize);
-            if(hist.xaxis.labels) {
-                var labelsPosition =  (xAxisBox.y);
-                xLabels
-                 .style("font-size", xLabelSize+"px")
-            } else
-                svg.select("#xaxisscale").selectAll("text")
-                 .style("font-size", xLabelSize+"px")
-                 .attr("y",xTickSize+3);
-            var xLabelBox = svg.select("#xaxisscale").node().getBBox();
-            if(hist.xaxis.title) {
-                xTitleSize -= 0.2; 
-                xtitle
-                .attr("transform","translate("+(plot.area.width/*+ plot.area.margin.right*/)+", "+(xLabelBox.y+xLabelBox.height)+")")
-                .style("font-size", xTitleSize+"em");
-=======
         if(hist.yaxis && hist.yaxis.title && svg.select("#ytitle").node().getBBox().height*(1-downSize) > plot.area.height
                 || svg.select("#yaxis").node().getBBox().width > plot.area.margin.left) {
             svg.select("#ytitle").attr("transform", "translate(-"+(plot.area.margin.left-svg.select("#ytitle").node().getBBox().width/2) +",0)" + scaleString)
@@ -1385,7 +996,6 @@ function drawAxis(main, svg, plot, hist) {
                      .attr("transform","translate("+(plot.area.width/*+ plot.area.margin.right*/)+", "+(xLabelBox.y+xLabelBox.height)+")")
                      .style("font-size", xTitleSize+"em");
                 }
->>>>>>> jsEditor
             }
         }
     }
@@ -1438,34 +1048,6 @@ function drawAxis(main, svg, plot, hist) {
                  return "black"}
          })
          
-<<<<<<< HEAD
-    cells.selectAll(".bin").data(stepBins).enter().append("line")
-     .attr("class","bin")
-     .attr("x1", function(d) {
-        return plot.x.scale(d.x)})
-     .attr("x2",function(d) {return plot.x.scale(d.x + d.width)})
-     .attr("y1",function(d) {return plot.y.scale(d.y)})
-     .attr("y2",function(d) {return plot.y.scale(d.y)})
-     .attr("stroke",function(d) {
-         if(d.y < plot.y.min || d.y > plot.y.max ) {
-             return "none"
-         } else {
-             return "black"}
-     })
-     
-    if(plot.isTProfile())
-        cells.selectAll(".error").data(stepBins).enter().append("line")
-         .attr("class","error")
-         .attr("x1",function(d) {return plot.x.scale(d.x + d.width/2)})
-         .attr("x2",function(d) {return plot.x.scale(d.x + d.width/2)})
-         .attr("y1",function(d) {return plot.y.scale(d.y-d.error)})
-         .attr("y2",function(d) {return plot.y.scale(d.y+d.error)})
-         .attr("stroke","black")
-     else {
-         var lastVal = plot.y.scale.domain()[0];
-         for(var i=0; i!=stepBins.length; ++i) {
-             var d = stepBins[i];
-=======
         if(plot.isTProfile())
             cells.selectAll(".error").data(stepBins).enter().append("line")
              .attr("class","error")
@@ -1488,7 +1070,6 @@ function drawAxis(main, svg, plot, hist) {
                  lastVal = d.y;
              }
              var d = stepBins[stepBins.length-1];
->>>>>>> jsEditor
              cells.append("line")
              .attr("class","vertical")
              .attr("x1",plot.x.scale(d.x+d.width))
@@ -1496,95 +1077,7 @@ function drawAxis(main, svg, plot, hist) {
              .attr("y1",plot.y.scale(lastVal))
              .attr("y2",plot.y.scale(lastVal))
              .attr("stroke","black")
-    
          }
-<<<<<<< HEAD
-         var d = stepBins[stepBins.length-1];
-         cells.append("line")
-         .attr("class","vertical")
-         .attr("x1",plot.x.scale(d.x+d.width))
-         .attr("x2",plot.x.scale(d.x+d.width))
-         .attr("y1",plot.y.scale(lastVal))
-         .attr("y2",plot.y.scale(lastVal))
-         .attr("stroke","black")
-
-     }
-    return stepBins;
-}
-function drawTH2bins(main, hist, plot) {
-    var range = plot.area.height;
-    var zColor = 
-        d3.scale.linear()
-        .domain([range, range*4/5, range*3/5, range*2/5, range*1/5,  0])
-        .range(["rgb(255,0,255)","rgb(0,0,255)","rgb(0,255,255)", "rgb(0,255,0)","rgb(255,255,0)", "rgb(255,0,0)"])
-       .interpolate(d3.interpolateRgb);    
-
-    var rects = 
-          main
-          .append("g")
-           .attr("id","cells")
-           .attr("width", plot.area.width)
-           .attr("heigth", plot.area.heigth)
-           .selectAll(".row")
-           .data(plot.bins.binsArray())
-           .enter()
-          .append("g")
-           .attr("id","row")
-           .selectAll(".point")
-           .data(function(d){return d;})
-           .enter()
-          .append("rect")
-           .attr("id",function(d,i,j) {return "point"+i+j;})
-           .style("fill",function(d,i,j) {if(d<plot.z.min || d==0) {return "rgb(255,255,255)";} else {if(d>plot.z.max) {return zColor(plot.z.scale(plot.z.max))} else {return zColor(plot.z.scale(d));}}});
-
-    rects
-    .attr("x",function(d,i,j) {return plot.x.scale(plot.bins.lowEdgeX(i));})
-    .attr("width",function(d,i,j) {return plot.x.scale(plot.bins.lowEdgeX(i+1)) - plot.x.scale(plot.bins.lowEdgeX(i));})
-    .attr("y",function(d,i,j) {return plot.y.scale(plot.bins.lowEdgeY(j+1));})
-    .attr("height",function(d,i,j) {return plot.y.scale(plot.bins.lowEdgeY(j)) - plot.y.scale(plot.bins.lowEdgeY(j+1));})
-                     
-    var cells = main.select("#cells").node().getBBox();
-    if(plot.z.max != plot.z.min) {
-        var values = d3.range(0,400,2)
-        var xx = d3.scale.ordinal()
-           .domain(values)
-           .rangeBands([0,cells.height],0);
-        main.append("g")
-         .attr("id","zaxis")
-         .selectAll("rect")
-           .data(values)
-         .enter().append("rect")
-            .attr("x", cells.x + cells.width + 1)
-            .attr("y", xx)
-            .attr("height", xx.rangeBand())
-            .attr("width", plot.area.margin.right * 0.3)
-            .style("fill", function(d) {return zColor(xx(d))})
-        
-        var zAxis = d3.svg.axis()
-            .scale(plot.z.scale)
-            .tickSize(10)
-            .orient("right")
-            .tickFormat(d3.format("s"));
-        var zAxisBox = main.select("#zaxis").node().getBBox();
-        
-        main.select("#zaxis").append("g")
-            .attr("class", "z axis")
-            .attr("transform", "translate("+(zAxisBox.x+zAxisBox.width)+",0)")
-            .attr("id","zaxis")
-            .call(zAxis);
-        organiseZLabels(main, plot.z.min)
-        var zTitleSize = 1.5;
-        var zLabelSize = 10;
-        var zTicksLane = 10;
-        var i;
-        for (i = 0; i<5 && main.select("#zaxis").node().getBBox().width > plot.area.margin.right; ++i) {
-            zLabelSize--;
-            main.select("#zaxis").selectAll("text")
-              .style("font-size", zLabelSize+"px")
-              .attr("x",zLabelSize+3);
-            main.select("#zaxis").selectAll(".tick")
-              .attr("x2",zLabelSize)
-=======
         return stepBins;
     }
     
@@ -1663,7 +1156,6 @@ function drawTH2bins(main, hist, plot) {
                 main.select("#zaxis").selectAll(".tick")
                   .attr("x2",zLabelSize)
             }
->>>>>>> jsEditor
         }
     }
     this.drawStats = function(svg,content,plot, width) {
